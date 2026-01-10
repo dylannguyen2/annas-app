@@ -18,6 +18,7 @@ import {
   Calendar,
   UtensilsCrossed,
   BookOpen,
+  ListTodo,
 } from 'lucide-react'
 
 const mainNav = [
@@ -28,6 +29,7 @@ const mainNav = [
 ]
 
 const moreNav = [
+  { name: 'Tasks', href: '/todos', icon: ListTodo },
   { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
   { name: 'Books', href: '/books', icon: BookOpen },
   { name: 'Workouts', href: '/workouts', icon: Dumbbell },
@@ -92,8 +94,8 @@ export function MobileNav() {
               menuOpen && !isAnimating ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
             )}
           >
-            <div className="px-4 pt-4 pb-2">
-              <div className="flex items-center justify-between mb-3">
+            <div className="pt-4 pb-2">
+              <div className="flex items-center justify-between mb-3 px-4">
                 <span className="font-semibold text-lg">More</span>
                 <button
                   onClick={handleClose}
@@ -105,8 +107,8 @@ export function MobileNav() {
               
               <div className="w-12 h-1 bg-border rounded-full mx-auto mb-4" />
               
-              <div className="grid grid-cols-4 gap-2 pb-2">
-                {moreNav.map((item, index) => {
+              <div className="flex justify-around pb-2">
+                {moreNav.slice(0, 4).map((item, index) => {
                   const isActive = pathname === item.href
                   return (
                     <Link
@@ -114,13 +116,39 @@ export function MobileNav() {
                       href={item.href}
                       onClick={handleClose}
                       className={cn(
-                        'flex flex-col items-center justify-center p-3 rounded-2xl transition-all active:scale-95',
+                        'flex flex-col items-center justify-center p-3 rounded-2xl transition-all active:scale-95 flex-1',
                         isActive
                           ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
                           : 'text-muted-foreground hover:bg-secondary active:bg-secondary/80'
                       )}
                       style={{
                         transitionDelay: menuOpen && !isAnimating ? `${index * 30}ms` : '0ms',
+                        transform: menuOpen && !isAnimating ? 'translateY(0)' : 'translateY(10px)',
+                        opacity: menuOpen && !isAnimating ? 1 : 0,
+                      }}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span className="text-[11px] mt-1.5 font-medium">{item.name}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+              <div className="flex justify-around pb-2">
+                {moreNav.slice(4).map((item, index) => {
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={handleClose}
+                      className={cn(
+                        'flex flex-col items-center justify-center p-3 rounded-2xl transition-all active:scale-95 flex-1',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                          : 'text-muted-foreground hover:bg-secondary active:bg-secondary/80'
+                      )}
+                      style={{
+                        transitionDelay: menuOpen && !isAnimating ? `${(index + 4) * 30}ms` : '0ms',
                         transform: menuOpen && !isAnimating ? 'translateY(0)' : 'translateY(10px)',
                         opacity: menuOpen && !isAnimating ? 1 : 0,
                       }}

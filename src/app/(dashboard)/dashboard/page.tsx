@@ -11,7 +11,8 @@ import { HabitToggle } from '@/components/dashboard/habit-toggle'
 import { HabitForm } from '@/components/forms/habit-form'
 import { MoodPicker } from '@/components/dashboard/mood-picker'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
-import { MoodHeatmap, HabitHeatmap } from '@/components/charts'
+import { MoodHeatmap } from '@/components/charts'
+import { CircularHabitTracker } from '@/components/dashboard/circular-habit-tracker'
 import { Moon, Footprints, Plus, ArrowRight, Dumbbell, Sun, Sparkles } from 'lucide-react'
 import { formatDate } from '@/lib/utils/dates'
 import Link from 'next/link'
@@ -65,34 +66,6 @@ export default function DashboardPage() {
       .map(m => ({ date: m.date, mood: m.mood as number }))
   }, [moods])
 
-  const habitHeatmapData = useMemo(() => {
-    const dateMap = new Map<string, { completed: number; total: number }>()
-    
-    completions.forEach(c => {
-      if (c.completed) {
-        const existing = dateMap.get(c.date) || { completed: 0, total: habits.length }
-        existing.completed += 1
-        dateMap.set(c.date, existing)
-      }
-    })
-
-    const now = new Date()
-    for (let i = 0; i < 365; i++) {
-      const date = new Date(now)
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
-      if (!dateMap.has(dateStr)) {
-        dateMap.set(dateStr, { completed: 0, total: habits.length })
-      }
-    }
-
-    return Array.from(dateMap.entries()).map(([date, data]) => ({
-      date,
-      completed: data.completed,
-      total: data.total,
-    }))
-  }, [habits, completions])
-
   if (loading) {
     return <DashboardSkeleton />
   }
@@ -105,7 +78,7 @@ export default function DashboardPage() {
             {greeting.text}! <GreetingIcon className="h-8 w-8 text-yellow-500 animate-spin-slow" />
           </h2>
           <p className="text-muted-foreground text-lg mt-2 flex items-center gap-2">
-            Ready to have a wonderful day? <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+            Ready to have a wonderful day?
           </p>
         </div>
       </div>
@@ -183,21 +156,12 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Habit Completion</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {habits.length > 0 ? (
-              <HabitHeatmap data={habitHeatmapData} />
-            ) : (
-              <div className="h-[150px] flex items-center justify-center text-muted-foreground text-sm">
-                Create habits to see your consistency
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 lg:grid-cols-[25fr_75fr]">
+        <CircularHabitTracker 
+          habits={habits} 
+          completions={completions} 
+          isCompleted={isCompleted}
+        />
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Mood History</CardTitle>

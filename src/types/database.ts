@@ -351,6 +351,47 @@ export interface Database {
           created_at?: string
         }
       }
+      todos: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          quadrant: 'do_first' | 'schedule' | 'delegate' | 'eliminate'
+          completed: boolean
+          due_date: string | null
+          completed_at: string | null
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          quadrant: 'do_first' | 'schedule' | 'delegate' | 'eliminate'
+          completed?: boolean
+          due_date?: string | null
+          completed_at?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          quadrant?: 'do_first' | 'schedule' | 'delegate' | 'eliminate'
+          completed?: boolean
+          due_date?: string | null
+          completed_at?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       activities: {
         Row: {
           id: string
@@ -485,3 +526,5 @@ export type GarminCredentials = Tables<'garmin_credentials'>
 export type Meal = Tables<'meals'>
 export type Activity = Tables<'activities'>
 export type Book = Tables<'books'>
+export type Todo = Tables<'todos'>
+export type TodoQuadrant = 'do_first' | 'schedule' | 'delegate' | 'eliminate'

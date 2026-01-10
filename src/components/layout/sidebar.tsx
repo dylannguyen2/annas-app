@@ -18,6 +18,7 @@ import {
   Menu,
   UtensilsCrossed,
   BookOpen,
+  ListTodo,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -32,6 +33,7 @@ const navGroups = [
     label: 'Daily Tracking',
     items: [
       { name: 'Habits', href: '/habits', icon: CheckSquare },
+      { name: 'Tasks', href: '/todos', icon: ListTodo },
       { name: 'Mood', href: '/mood', icon: Smile },
       { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
       { name: 'Books', href: '/books', icon: BookOpen },
