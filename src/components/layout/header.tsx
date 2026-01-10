@@ -28,7 +28,7 @@ export function Header() {
     <header className="sticky top-0 z-40 bg-background border-b">
       <div className="flex items-center justify-between h-16 px-4 md:px-6">
         <div className="md:hidden">
-          <h1 className="text-xl font-bold">Anna's World</h1>
+          <h1 className="text-xl font-bold">Anna's World 🌏</h1>
         </div>
         <div className="hidden md:block">
           <p className="text-sm text-muted-foreground">{today}</p>
