@@ -74,7 +74,7 @@ export function Sidebar() {
             isCollapsed ? "justify-center px-2" : "gap-3 px-2"
           )}>
             <div className="p-2 bg-primary/10 rounded-xl flex-shrink-0">
-              <img src="/anna.jpeg" alt="Anna's World" className="w-9 h-9 rounded-full" width={36} height={36} />
+              <img src="/anna.png" alt="Anna's World" className="w-9 h-9 rounded-full" width={36} height={36} />
             </div>
             <h1 className={cn(
               "text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap transition-all duration-300 origin-left",
