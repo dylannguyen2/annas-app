@@ -78,7 +78,7 @@ export function Sidebar() {
               "text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap transition-all duration-300 origin-left",
               isCollapsed ? "opacity-0 w-0 scale-0" : "opacity-100 w-auto scale-100"
             )}>
-              Anna's World
+              Anna's World 🌏
             </h1>
           </div>
         </div>
