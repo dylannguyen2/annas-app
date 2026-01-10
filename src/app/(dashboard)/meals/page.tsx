@@ -62,6 +62,7 @@ export default function MealsPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [addingToMeal, setAddingToMeal] = useState<Meal | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadInputRef = useRef<HTMLInputElement>(null)
   const addPhotoInputRef = useRef<HTMLInputElement>(null)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -218,6 +219,13 @@ export default function MealsPage() {
         className="hidden"
       />
       <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleQuickCapturePhoto}
+        className="hidden"
+      />
+      <input
         ref={addPhotoInputRef}
         type="file"
         accept="image/*"
@@ -234,23 +242,46 @@ export default function MealsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
+          {isMobile ? (
+            <div className="relative">
               <Button variant="outline" size="sm" className="gap-2">
                 <CalendarIcon className="h-4 w-4" />
                 {isToday ? 'Today' : format(selectedDate, 'MMM d')}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                disabled={(date) => date > new Date()}
-                initialFocus
+              <input
+                type="date"
+                value={format(selectedDate, 'yyyy-MM-dd')}
+                max={format(new Date(), 'yyyy-MM-dd')}
+                onChange={(e) => e.target.value && setSelectedDate(new Date(e.target.value + 'T00:00:00'))}
+                className="absolute inset-0 opacity-0 cursor-pointer"
               />
-            </PopoverContent>
-          </Popover>
+            </div>
+          ) : (
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {isToday ? 'Today' : format(selectedDate, 'MMM d')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+          <Button 
+            variant="outline"
+            size="icon"
+            onClick={() => uploadInputRef.current?.click()}
+          >
+            <ImagePlus className="h-4 w-4" />
+          </Button>
           <Button onClick={handleQuickCapture} className="gap-2">
             <Camera className="h-4 w-4" />
             Snap
@@ -441,7 +472,7 @@ export default function MealsPage() {
                         setAddingToMeal(mealsForDate[0])
                         addPhotoInputRef.current?.click()
                       } else {
-                        fileInputRef.current?.click()
+                        uploadInputRef.current?.click()
                       }
                     }}
                     disabled={uploading}
@@ -450,8 +481,8 @@ export default function MealsPage() {
                       <Loader2 className="h-6 w-6 md:h-10 md:w-10 text-primary/50 animate-spin" />
                     ) : (
                       <>
-                        <Camera className="h-6 w-6 md:h-10 md:w-10 text-primary/50" />
-                        <span className="text-xs md:text-sm text-primary/50">Add</span>
+                        <ImagePlus className="h-6 w-6 md:h-10 md:w-10 text-primary/50" />
+                        <span className="text-xs md:text-sm text-primary/50">Upload</span>
                       </>
                     )}
                   </button>
