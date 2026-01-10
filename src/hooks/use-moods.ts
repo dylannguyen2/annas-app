@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import useSWR, { mutate } from 'swr'
 import { formatDate } from '@/lib/utils/dates'
 
 interface Mood {
@@ -15,25 +15,23 @@ interface Mood {
   created_at: string
 }
 
-export function useMoods() {
-  const [moods, setMoods] = useState<Mood[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
 
-  const fetchMoods = useCallback(async (startDate?: string, endDate?: string) => {
-    try {
-      const params = new URLSearchParams()
-      if (startDate) params.set('start', startDate)
-      if (endDate) params.set('end', endDate)
-      
-      const res = await fetch(`/api/moods?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch moods')
-      const data = await res.json()
-      setMoods(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+const getMoodsKey = () => {
+  const oneYearAgo = new Date()
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+  return `/api/moods?start=${formatDate(oneYearAgo)}&end=${formatDate(new Date())}`
+}
+
+export function useMoods() {
+  const { data: moods = [], error, isLoading: loading } = useSWR<Mood[]>(
+    getMoodsKey,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
   const saveMood = async (data: {
     date: string
@@ -49,19 +47,19 @@ export function useMoods() {
       body: JSON.stringify(data),
     })
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
+      const errorData = await res.json().catch(() => ({}))
       if (res.status === 401) throw new Error('Please log in to save your mood')
-      throw new Error(data.error || 'Failed to save mood')
+      throw new Error(errorData.error || 'Failed to save mood')
     }
     const newMood = await res.json()
     
-    setMoods(prev => {
-      const exists = prev.find(m => m.date === data.date)
-      if (exists) {
-        return prev.map(m => m.date === data.date ? newMood : m)
-      }
-      return [newMood, ...prev]
-    })
+    const key = getMoodsKey()
+    const exists = moods.find(m => m.date === data.date)
+    if (exists) {
+      mutate(key, moods.map(m => m.date === data.date ? newMood : m), false)
+    } else {
+      mutate(key, [newMood, ...moods], false)
+    }
     
     return newMood
   }
@@ -74,24 +72,13 @@ export function useMoods() {
     return getMoodForDate(formatDate(new Date()))
   }
 
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      const oneYearAgo = new Date()
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-      await fetchMoods(formatDate(oneYearAgo), formatDate(new Date()))
-      setLoading(false)
-    }
-    init()
-  }, [fetchMoods])
-
   return {
     moods,
     loading,
-    error,
+    error: error?.message || null,
     saveMood,
     getMoodForDate,
     getTodayMood,
-    refetch: fetchMoods,
+    refetch: () => mutate(getMoodsKey()),
   }
 }

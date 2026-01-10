@@ -1,23 +1,21 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import useSWR, { mutate } from 'swr'
 import type { Todo, TodoQuadrant } from '@/types/database'
 
-export function useTodos() {
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
 
-  const fetchTodos = useCallback(async () => {
-    try {
-      const res = await fetch('/api/todos')
-      if (!res.ok) throw new Error('Failed to fetch todos')
-      const data = await res.json()
-      setTodos(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+const TODOS_KEY = '/api/todos'
+
+export function useTodos() {
+  const { data: todos = [], error, isLoading: loading } = useSWR<Todo[]>(
+    TODOS_KEY,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
   const createTodo = async (data: {
     title: string
@@ -32,7 +30,7 @@ export function useTodos() {
     })
     if (!res.ok) throw new Error('Failed to create todo')
     const newTodo = await res.json()
-    setTodos(prev => [newTodo, ...prev])
+    mutate(TODOS_KEY, [newTodo, ...todos], false)
     return newTodo
   }
 
@@ -44,14 +42,14 @@ export function useTodos() {
     })
     if (!res.ok) throw new Error('Failed to update todo')
     const updated = await res.json()
-    setTodos(prev => prev.map(t => t.id === id ? updated : t))
+    mutate(TODOS_KEY, todos.map(t => t.id === id ? updated : t), false)
     return updated
   }
 
   const deleteTodo = async (id: string) => {
     const res = await fetch(`/api/todos/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete todo')
-    setTodos(prev => prev.filter(t => t.id !== id))
+    mutate(TODOS_KEY, todos.filter(t => t.id !== id), false)
   }
 
   const toggleComplete = async (id: string) => {
@@ -71,19 +69,10 @@ export function useTodos() {
   const getCompletedCount = () => todos.filter(t => t.completed).length
   const getPendingCount = () => todos.filter(t => !t.completed).length
 
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      await fetchTodos()
-      setLoading(false)
-    }
-    init()
-  }, [fetchTodos])
-
   return {
     todos,
     loading,
-    error,
+    error: error?.message || null,
     createTodo,
     updateTodo,
     deleteTodo,
@@ -92,6 +81,6 @@ export function useTodos() {
     getTodosByQuadrant,
     getCompletedCount,
     getPendingCount,
-    refetch: fetchTodos,
+    refetch: () => mutate(TODOS_KEY),
   }
 }

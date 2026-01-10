@@ -78,7 +78,7 @@ export default function MoodPage() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex w-full items-center justify-between">
               <CardTitle className="text-base">Calendar</CardTitle>
               <div className="flex items-center gap-1">
                 <Button

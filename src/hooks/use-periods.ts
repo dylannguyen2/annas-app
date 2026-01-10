@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useMemo } from 'react'
+import useSWR, { mutate } from 'swr'
 
 interface PeriodLog {
   id: string
@@ -29,35 +30,35 @@ interface CycleInfo {
   ovulationDay: string | null
 }
 
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
+
+const getPeriodsKey = () => {
+  const oneYearAgo = new Date()
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+  return `/api/periods?start=${oneYearAgo.toISOString().split('T')[0]}`
+}
+
+const SETTINGS_KEY = '/api/periods/settings'
+
 export function usePeriods() {
-  const [periodLogs, setPeriodLogs] = useState<PeriodLog[]>([])
-  const [settings, setSettings] = useState<CycleSettings>({ average_cycle_length: 28, average_period_length: 5 })
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPeriodLogs = useCallback(async () => {
-    try {
-      const oneYearAgo = new Date()
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-      const res = await fetch(`/api/periods?start=${oneYearAgo.toISOString().split('T')[0]}`)
-      if (!res.ok) throw new Error('Failed to fetch period logs')
-      const data = await res.json()
-      setPeriodLogs(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+  const { data: periodLogs = [], isLoading: logsLoading } = useSWR<PeriodLog[]>(
+    getPeriodsKey,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
-  const fetchSettings = useCallback(async () => {
-    try {
-      const res = await fetch('/api/periods/settings')
-      if (!res.ok) throw new Error('Failed to fetch settings')
-      const data = await res.json()
-      setSettings(data)
-    } catch (err) {
-      console.error('Error fetching settings:', err)
-    }
-  }, [])
+  const { data: settings = { average_cycle_length: 28, average_period_length: 5 }, isLoading: settingsLoading } = useSWR<CycleSettings>(
+    SETTINGS_KEY,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
+
+  const loading = logsLoading || settingsLoading
 
   const logPeriod = async (data: {
     date: string
@@ -78,17 +79,19 @@ export function usePeriods() {
     }
     
     const newLog = await res.json()
-    setPeriodLogs(prev => {
+    const key = getPeriodsKey()
+    mutate(key, (prev: PeriodLog[] = []) => {
       const filtered = prev.filter(p => p.date !== data.date)
       return [newLog, ...filtered].sort((a, b) => b.date.localeCompare(a.date))
-    })
+    }, false)
     return newLog
   }
 
   const deletePeriodLog = async (date: string) => {
     const res = await fetch(`/api/periods?date=${date}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete log')
-    setPeriodLogs(prev => prev.filter(p => p.date !== date))
+    const key = getPeriodsKey()
+    mutate(key, (prev: PeriodLog[] = []) => prev.filter(p => p.date !== date), false)
   }
 
   const updateSettings = async (newSettings: Partial<CycleSettings>) => {
@@ -99,7 +102,7 @@ export function usePeriods() {
     })
     if (!res.ok) throw new Error('Failed to update settings')
     const updated = await res.json()
-    setSettings(updated)
+    mutate(SETTINGS_KEY, updated, false)
     return updated
   }
 
@@ -173,7 +176,7 @@ export function usePeriods() {
     return periodLogs.find(p => p.date === date)
   }
 
-  const getRecentCycles = useMemo(() => {
+  const recentCycles = useMemo(() => {
     const periodDays = periodLogs
       .filter(p => p.is_period_day)
       .map(p => p.date)
@@ -203,15 +206,6 @@ export function usePeriods() {
     return cycles.slice(-6).reverse()
   }, [periodLogs])
 
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      await Promise.all([fetchPeriodLogs(), fetchSettings()])
-      setLoading(false)
-    }
-    init()
-  }, [fetchPeriodLogs, fetchSettings])
-
   return {
     periodLogs,
     settings,
@@ -222,7 +216,10 @@ export function usePeriods() {
     updateSettings,
     cycleInfo,
     getPeriodLogForDate,
-    recentCycles: getRecentCycles,
-    refetch: () => Promise.all([fetchPeriodLogs(), fetchSettings()]),
+    recentCycles,
+    refetch: () => {
+      mutate(getPeriodsKey())
+      mutate(SETTINGS_KEY)
+    },
   }
 }

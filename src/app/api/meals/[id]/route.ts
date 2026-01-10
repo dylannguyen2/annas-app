@@ -14,11 +14,25 @@ export async function PATCH(
 
   const { id } = await params
   const body = await request.json()
-  const { date, meal_type, photo_url, description, notes } = body
+  const { date, meal_type, photo_url, photo_urls, description, location, notes, pinned } = body
+
+  const updateData: Record<string, unknown> = {}
+  if (date !== undefined) updateData.date = date
+  if (meal_type !== undefined) updateData.meal_type = meal_type
+  if (description !== undefined) updateData.description = description
+  if (location !== undefined) updateData.location = location
+  if (notes !== undefined) updateData.notes = notes
+  if (pinned !== undefined) updateData.pinned = pinned
+  if (photo_urls !== undefined) {
+    updateData.photo_urls = photo_urls
+    updateData.photo_url = photo_urls[0] || null
+  } else if (photo_url !== undefined) {
+    updateData.photo_url = photo_url
+  }
 
   const { data: updated, error } = await supabase
     .from('meals')
-    .update({ date, meal_type, photo_url, description, notes })
+    .update(updateData)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()

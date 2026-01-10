@@ -42,7 +42,7 @@ export default function DashboardPage() {
   const completedToday = habits.filter(h => isCompleted(h.id, today)).length
   const totalHabits = habits.length
   const todayMood = getTodayMood()
-  const todayHealth = getTodayHealth()
+  const todayHealth = getTodayHealth
   const greeting = getGreeting()
   const GreetingIcon = greeting.icon
 

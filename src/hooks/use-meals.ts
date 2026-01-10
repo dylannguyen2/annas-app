@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import useSWR, { mutate } from 'swr'
 import { formatDate } from '@/lib/utils/dates'
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
@@ -11,30 +11,31 @@ interface Meal {
   date: string
   meal_type: MealType
   photo_url: string | null
+  photo_urls: string[]
   description: string | null
+  location: string | null
   notes: string | null
+  pinned: boolean
   created_at: string
 }
 
-export function useMeals() {
-  const [meals, setMeals] = useState<Meal[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
 
-  const fetchMeals = useCallback(async (startDate?: string, endDate?: string) => {
-    try {
-      const params = new URLSearchParams()
-      if (startDate) params.set('start', startDate)
-      if (endDate) params.set('end', endDate)
-      
-      const res = await fetch(`/api/meals?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch meals')
-      const data = await res.json()
-      setMeals(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+const getMealsKey = () => {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  return `/api/meals?start=${formatDate(thirtyDaysAgo)}&end=${formatDate(new Date())}`
+}
+
+export function useMeals() {
+  const { data: meals = [], error, isLoading: loading } = useSWR<Meal[]>(
+    getMealsKey,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
   const uploadPhoto = async (file: File): Promise<string> => {
     const formData = new FormData()
@@ -58,7 +59,9 @@ export function useMeals() {
     date: string
     meal_type: MealType
     photo_url?: string | null
+    photo_urls?: string[]
     description?: string
+    location?: string
     notes?: string
   }) => {
     const res = await fetch('/api/meals', {
@@ -73,7 +76,7 @@ export function useMeals() {
     }
     
     const newMeal = await res.json()
-    setMeals(prev => [newMeal, ...prev])
+    mutate(getMealsKey(), [newMeal, ...meals], false)
     return newMeal
   }
 
@@ -81,8 +84,11 @@ export function useMeals() {
     date?: string
     meal_type?: MealType
     photo_url?: string | null
+    photo_urls?: string[]
     description?: string
+    location?: string
     notes?: string
+    pinned?: boolean
   }) => {
     const res = await fetch(`/api/meals/${id}`, {
       method: 'PATCH',
@@ -96,14 +102,14 @@ export function useMeals() {
     }
     
     const updated = await res.json()
-    setMeals(prev => prev.map(m => m.id === id ? updated : m))
+    mutate(getMealsKey(), meals.map(m => m.id === id ? updated : m), false)
     return updated
   }
 
   const deleteMeal = async (id: string) => {
     const res = await fetch(`/api/meals/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete meal')
-    setMeals(prev => prev.filter(m => m.id !== id))
+    mutate(getMealsKey(), meals.filter(m => m.id !== id), false)
   }
 
   const getMealsForDate = (date: string): Meal[] => {
@@ -114,27 +120,28 @@ export function useMeals() {
     return getMealsForDate(formatDate(new Date()))
   }
 
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      await fetchMeals(formatDate(thirtyDaysAgo), formatDate(new Date()))
-      setLoading(false)
-    }
-    init()
-  }, [fetchMeals])
+  const getPinnedMeals = (): Meal[] => {
+    return meals.filter(m => m.pinned)
+  }
+
+  const togglePin = async (id: string) => {
+    const meal = meals.find(m => m.id === id)
+    if (!meal) return
+    return updateMeal(id, { pinned: !meal.pinned })
+  }
 
   return {
     meals,
     loading,
-    error,
+    error: error?.message || null,
     uploadPhoto,
     createMeal,
     updateMeal,
     deleteMeal,
     getMealsForDate,
     getTodayMeals,
-    refetch: fetchMeals,
+    getPinnedMeals,
+    togglePin,
+    refetch: () => mutate(getMealsKey()),
   }
 }

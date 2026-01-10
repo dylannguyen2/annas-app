@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import useSWR, { mutate } from 'swr'
 
 export type BookStatus = 'want_to_read' | 'reading' | 'finished'
 
@@ -31,24 +31,19 @@ export interface SearchResult {
   year: number | null
 }
 
-export function useBooks() {
-  const [books, setBooks] = useState<Book[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
 
-  const fetchBooks = useCallback(async (status?: BookStatus) => {
-    try {
-      const params = new URLSearchParams()
-      if (status) params.set('status', status)
-      
-      const res = await fetch(`/api/books?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch books')
-      const data = await res.json()
-      setBooks(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+const BOOKS_KEY = '/api/books'
+
+export function useBooks() {
+  const { data: books = [], error, isLoading: loading } = useSWR<Book[]>(
+    BOOKS_KEY,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
   const searchBooks = async (query: string): Promise<SearchResult[]> => {
     if (!query.trim()) return []
@@ -82,7 +77,7 @@ export function useBooks() {
     }
     
     const newBook = await res.json()
-    setBooks(prev => [newBook, ...prev])
+    mutate(BOOKS_KEY, [newBook, ...books], false)
     return newBook
   }
 
@@ -99,38 +94,29 @@ export function useBooks() {
     }
     
     const updated = await res.json()
-    setBooks(prev => prev.map(b => b.id === id ? updated : b))
+    mutate(BOOKS_KEY, books.map(b => b.id === id ? updated : b), false)
     return updated
   }
 
   const deleteBook = async (id: string) => {
     const res = await fetch(`/api/books/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete book')
-    setBooks(prev => prev.filter(b => b.id !== id))
+    mutate(BOOKS_KEY, books.filter(b => b.id !== id), false)
   }
 
   const getBooksByStatus = (status: BookStatus): Book[] => {
     return books.filter(b => b.status === status)
   }
 
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      await fetchBooks()
-      setLoading(false)
-    }
-    init()
-  }, [fetchBooks])
-
   return {
     books,
     loading,
-    error,
+    error: error?.message || null,
     searchBooks,
     addBook,
     updateBook,
     deleteBook,
     getBooksByStatus,
-    refetch: fetchBooks,
+    refetch: () => mutate(BOOKS_KEY),
   }
 }

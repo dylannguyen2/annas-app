@@ -1,40 +1,35 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import useSWR, { mutate } from 'swr'
 import type { Habit, HabitCompletion } from '@/types/database'
 import { formatDate } from '@/lib/utils/dates'
 
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
+
+const getCompletionsKey = () => {
+  const oneYearAgo = new Date()
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+  return `/api/habits/completions?start=${formatDate(oneYearAgo)}&end=${formatDate(new Date())}`
+}
+
 export function useHabits() {
-  const [habits, setHabits] = useState<Habit[]>([])
-  const [completions, setCompletions] = useState<HabitCompletion[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: habits = [], error: habitsError, isLoading: habitsLoading } = useSWR<Habit[]>(
+    '/api/habits',
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
+  
+  const { data: completions = [], error: completionsError, isLoading: completionsLoading } = useSWR<HabitCompletion[]>(
+    getCompletionsKey,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
-  const fetchHabits = useCallback(async () => {
-    try {
-      const res = await fetch('/api/habits')
-      if (!res.ok) throw new Error('Failed to fetch habits')
-      const data = await res.json()
-      setHabits(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
-
-  const fetchCompletions = useCallback(async (startDate?: string, endDate?: string) => {
-    try {
-      const params = new URLSearchParams()
-      if (startDate) params.set('start', startDate)
-      if (endDate) params.set('end', endDate)
-      
-      const res = await fetch(`/api/habits/completions?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch completions')
-      const data = await res.json()
-      setCompletions(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+  const loading = habitsLoading || completionsLoading
+  const error = habitsError?.message || completionsError?.message || null
 
   const createHabit = async (habit: { name: string; icon?: string; color?: string }) => {
     const res = await fetch('/api/habits', {
@@ -44,7 +39,7 @@ export function useHabits() {
     })
     if (!res.ok) throw new Error('Failed to create habit')
     const newHabit = await res.json()
-    setHabits(prev => [...prev, newHabit])
+    mutate('/api/habits', [...habits, newHabit], false)
     return newHabit
   }
 
@@ -56,14 +51,14 @@ export function useHabits() {
     })
     if (!res.ok) throw new Error('Failed to update habit')
     const updated = await res.json()
-    setHabits(prev => prev.map(h => h.id === id ? updated : h))
+    mutate('/api/habits', habits.map(h => h.id === id ? updated : h), false)
     return updated
   }
 
   const deleteHabit = async (id: string) => {
     const res = await fetch(`/api/habits/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete habit')
-    setHabits(prev => prev.filter(h => h.id !== id))
+    mutate('/api/habits', habits.filter(h => h.id !== id), false)
   }
 
   const toggleCompletion = async (habitId: string, date: string, completed: boolean) => {
@@ -75,17 +70,17 @@ export function useHabits() {
     if (!res.ok) throw new Error('Failed to toggle completion')
     
     const result = await res.json()
+    const key = getCompletionsKey()
     
     if (result.deleted) {
-      setCompletions(prev => prev.filter(c => !(c.habit_id === habitId && c.date === date)))
+      mutate(key, completions.filter(c => !(c.habit_id === habitId && c.date === date)), false)
     } else {
-      setCompletions(prev => {
-        const exists = prev.find(c => c.habit_id === habitId && c.date === date)
-        if (exists) {
-          return prev.map(c => c.habit_id === habitId && c.date === date ? result : c)
-        }
-        return [...prev, result]
-      })
+      const exists = completions.find(c => c.habit_id === habitId && c.date === date)
+      if (exists) {
+        mutate(key, completions.map(c => c.habit_id === habitId && c.date === date ? result : c), false)
+      } else {
+        mutate(key, [...completions, result], false)
+      }
     }
   }
 
@@ -99,20 +94,6 @@ export function useHabits() {
       .map(c => c.date)
   }
 
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      const oneYearAgo = new Date()
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-      await Promise.all([
-        fetchHabits(),
-        fetchCompletions(formatDate(oneYearAgo), formatDate(new Date()))
-      ])
-      setLoading(false)
-    }
-    init()
-  }, [fetchHabits, fetchCompletions])
-
   return {
     habits,
     completions,
@@ -124,6 +105,9 @@ export function useHabits() {
     toggleCompletion,
     isCompleted,
     getCompletionDates,
-    refetch: () => Promise.all([fetchHabits(), fetchCompletions()]),
+    refetch: () => {
+      mutate('/api/habits')
+      mutate(getCompletionsKey())
+    },
   }
 }

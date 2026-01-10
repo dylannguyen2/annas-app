@@ -276,8 +276,11 @@ export interface Database {
           date: string
           meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
           photo_url: string | null
+          photo_urls: string[]
           description: string | null
+          location: string | null
           notes: string | null
+          pinned: boolean
           created_at: string
         }
         Insert: {
@@ -286,8 +289,11 @@ export interface Database {
           date: string
           meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
           photo_url?: string | null
+          photo_urls?: string[]
           description?: string | null
+          location?: string | null
           notes?: string | null
+          pinned?: boolean
           created_at?: string
         }
         Update: {
@@ -296,8 +302,11 @@ export interface Database {
           date?: string
           meal_type?: 'breakfast' | 'lunch' | 'dinner' | 'snack'
           photo_url?: string | null
+          photo_urls?: string[]
           description?: string | null
+          location?: string | null
           notes?: string | null
+          pinned?: boolean
           created_at?: string
         }
       }

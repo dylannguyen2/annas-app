@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import useSWR, { mutate } from 'swr'
 
 export type MediaStatus = 'want_to_watch' | 'watching' | 'finished'
 export type MediaType = 'movie' | 'tv'
@@ -38,25 +38,19 @@ export interface SearchResult {
   genres: string[]
 }
 
-export function useMedia() {
-  const [media, setMedia] = useState<Media[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
 
-  const fetchMedia = useCallback(async (status?: MediaStatus, mediaType?: MediaType) => {
-    try {
-      const params = new URLSearchParams()
-      if (status) params.set('status', status)
-      if (mediaType) params.set('media_type', mediaType)
-      
-      const res = await fetch(`/api/media?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch media')
-      const data = await res.json()
-      setMedia(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+const MEDIA_KEY = '/api/media'
+
+export function useMedia() {
+  const { data: media = [], error, isLoading: loading } = useSWR<Media[]>(
+    MEDIA_KEY,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
   const searchMedia = async (query: string, type?: MediaType): Promise<SearchResult[]> => {
     if (!query.trim()) return []
@@ -97,7 +91,7 @@ export function useMedia() {
     }
     
     const newMedia = await res.json()
-    setMedia(prev => [newMedia, ...prev])
+    mutate(MEDIA_KEY, [newMedia, ...media], false)
     return newMedia
   }
 
@@ -114,14 +108,14 @@ export function useMedia() {
     }
     
     const updated = await res.json()
-    setMedia(prev => prev.map(m => m.id === id ? updated : m))
+    mutate(MEDIA_KEY, media.map(m => m.id === id ? updated : m), false)
     return updated
   }
 
   const deleteMedia = async (id: string) => {
     const res = await fetch(`/api/media/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete media')
-    setMedia(prev => prev.filter(m => m.id !== id))
+    mutate(MEDIA_KEY, media.filter(m => m.id !== id), false)
   }
 
   const getMediaByStatus = (status: MediaStatus): Media[] => {
@@ -132,25 +126,16 @@ export function useMedia() {
     return media.filter(m => m.media_type === type)
   }
 
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      await fetchMedia()
-      setLoading(false)
-    }
-    init()
-  }, [fetchMedia])
-
   return {
     media,
     loading,
-    error,
+    error: error?.message || null,
     searchMedia,
     addMedia,
     updateMedia,
     deleteMedia,
     getMediaByStatus,
     getMediaByType,
-    refetch: fetchMedia,
+    refetch: () => mutate(MEDIA_KEY),
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import useSWR, { mutate } from 'swr'
 
 interface Workout {
   id: string
@@ -14,21 +14,19 @@ interface Workout {
   updated_at: string
 }
 
-export function useWorkouts() {
-  const [workouts, setWorkouts] = useState<Workout[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
 
-  const fetchWorkouts = useCallback(async () => {
-    try {
-      const res = await fetch('/api/workouts')
-      if (!res.ok) throw new Error('Failed to fetch workouts')
-      const data = await res.json()
-      setWorkouts(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+const WORKOUTS_KEY = '/api/workouts'
+
+export function useWorkouts() {
+  const { data: workouts = [], error, isLoading: loading } = useSWR<Workout[]>(
+    WORKOUTS_KEY,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
   const createWorkout = async (data: {
     date: string
@@ -47,7 +45,7 @@ export function useWorkouts() {
       throw new Error(errorData.error || 'Failed to create workout')
     }
     const newWorkout = await res.json()
-    setWorkouts(prev => [newWorkout, ...prev])
+    mutate(WORKOUTS_KEY, [newWorkout, ...workouts], false)
     return newWorkout
   }
 
@@ -59,32 +57,23 @@ export function useWorkouts() {
     })
     if (!res.ok) throw new Error('Failed to update workout')
     const updated = await res.json()
-    setWorkouts(prev => prev.map(w => w.id === id ? updated : w))
+    mutate(WORKOUTS_KEY, workouts.map(w => w.id === id ? updated : w), false)
     return updated
   }
 
   const deleteWorkout = async (id: string) => {
     const res = await fetch(`/api/workouts/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete workout')
-    setWorkouts(prev => prev.filter(w => w.id !== id))
+    mutate(WORKOUTS_KEY, workouts.filter(w => w.id !== id), false)
   }
-
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      await fetchWorkouts()
-      setLoading(false)
-    }
-    init()
-  }, [fetchWorkouts])
 
   return {
     workouts,
     loading,
-    error,
+    error: error?.message || null,
     createWorkout,
     updateWorkout,
     deleteWorkout,
-    refetch: fetchWorkouts,
+    refetch: () => mutate(WORKOUTS_KEY),
   }
 }

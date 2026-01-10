@@ -41,11 +41,13 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { date, meal_type, photo_url, description, notes } = body
+  const { date, meal_type, photo_url, photo_urls, description, location, notes } = body
 
   if (!date || !meal_type) {
     return NextResponse.json({ error: 'Date and meal type are required' }, { status: 400 })
   }
+
+  const finalPhotoUrls = photo_urls || (photo_url ? [photo_url] : [])
 
   const { data: newMeal, error } = await supabase
     .from('meals')
@@ -53,8 +55,10 @@ export async function POST(request: Request) {
       user_id: user.id,
       date,
       meal_type,
-      photo_url,
+      photo_url: finalPhotoUrls[0] || null,
+      photo_urls: finalPhotoUrls,
       description,
+      location,
       notes,
     })
     .select()

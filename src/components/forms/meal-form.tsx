@@ -28,7 +28,9 @@ interface MealData {
   date: string
   meal_type: MealType
   photo_url?: string | null
+  photo_urls?: string[]
   description?: string | null
+  location?: string | null
   notes?: string | null
 }
 
@@ -37,8 +39,9 @@ interface MealFormProps {
   onSubmit: (data: {
     date: string
     meal_type: MealType
-    photo_url?: string | null
+    photo_urls?: string[]
     description?: string
+    location?: string
     notes?: string
   }) => Promise<void>
   onUploadPhoto: (file: File) => Promise<string>
@@ -55,9 +58,10 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
   const [date, setDate] = useState(meal?.date || formatDate(new Date()))
   const [mealType, setMealType] = useState<MealType | ''>(meal?.meal_type || '')
   const [description, setDescription] = useState(meal?.description || '')
+  const [location, setLocation] = useState(meal?.location || '')
   const [notes, setNotes] = useState(meal?.notes || '')
-  const [photoUrl, setPhotoUrl] = useState<string | null>(meal?.photo_url || null)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(meal?.photo_url || null)
+  const [photoUrls, setPhotoUrls] = useState<string[]>(meal?.photo_urls || (meal?.photo_url ? [meal.photo_url] : []))
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>(meal?.photo_urls || (meal?.photo_url ? [meal.photo_url] : []))
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -65,31 +69,36 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
   const isEditing = !!meal
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
-    const reader = new FileReader()
-    reader.onloadend = () => setPhotoPreview(reader.result as string)
-    reader.readAsDataURL(file)
+    for (const file of Array.from(files)) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPhotoPreviews(prev => [...prev, reader.result as string])
+      }
+      reader.readAsDataURL(file)
 
-    setUploading(true)
-    try {
-      const url = await onUploadPhoto(file)
-      setPhotoUrl(url)
-    } catch (err) {
-      console.error('Failed to upload photo:', err)
-      setPhotoPreview(null)
-    } finally {
-      setUploading(false)
+      setUploading(true)
+      try {
+        const url = await onUploadPhoto(file)
+        setPhotoUrls(prev => [...prev, url])
+      } catch (err) {
+        console.error('Failed to upload photo:', err)
+        setPhotoPreviews(prev => prev.slice(0, -1))
+      } finally {
+        setUploading(false)
+      }
     }
-  }
-
-  const removePhoto = () => {
-    setPhotoUrl(null)
-    setPhotoPreview(null)
+    
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+  }
+
+  const removePhoto = (index: number) => {
+    setPhotoUrls(prev => prev.filter((_, i) => i !== index))
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,8 +110,9 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
       await onSubmit({
         date,
         meal_type: mealType,
-        photo_url: photoUrl,
+        photo_urls: photoUrls.length > 0 ? photoUrls : undefined,
         description: description || undefined,
+        location: location || undefined,
         notes: notes || undefined,
       })
       setOpen(false)
@@ -115,9 +125,10 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
   const resetForm = () => {
     setMealType('')
     setDescription('')
+    setLocation('')
     setNotes('')
-    setPhotoUrl(null)
-    setPhotoPreview(null)
+    setPhotoUrls([])
+    setPhotoPreviews([])
     setDate(formatDate(new Date()))
   }
 
@@ -163,46 +174,62 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
           </div>
 
           <div className="space-y-2">
-            <Label>Photo</Label>
+            <Label>Photos</Label>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               onChange={handlePhotoSelect}
               className="hidden"
             />
-            {photoPreview ? (
-              <div className="relative">
-                <img
-                  src={photoPreview}
-                  alt="Meal preview"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={removePhoto}
-                  className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+            {photoPreviews.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  {photoPreviews.map((preview, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <img
+                        src={preview}
+                        alt={`Meal photo ${index + 1}`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-black/70 cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="aspect-square flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Plus className="h-5 w-5 text-primary" />
+                    <span className="text-[10px] text-primary">Add</span>
+                  </button>
+                </div>
                 {uploading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Uploading...</span>
                   </div>
                 )}
               </div>
             ) : (
               <button
                 type="button"
-                className="w-full h-32 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all active:scale-[0.98]"
+                className="w-full h-32 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all active:scale-[0.98] cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                   <Camera className="h-6 w-6 text-primary" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-primary">Add Photo</p>
-                  <p className="text-xs text-muted-foreground">Camera or gallery</p>
+                  <p className="text-sm font-medium text-primary">Add Photos</p>
+                  <p className="text-xs text-muted-foreground">Camera or gallery (multiple)</p>
                 </div>
               </button>
             )}
@@ -215,6 +242,16 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
               placeholder="e.g., Avocado toast with eggs"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="location">Where from?</Label>
+            <Input
+              id="location"
+              placeholder="e.g., Home, Cafe Luna, Uber Eats..."
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
             />
           </div>
 

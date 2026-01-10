@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useMemo } from 'react'
+import useSWR, { mutate } from 'swr'
 import { formatDate } from '@/lib/utils/dates'
 
 interface HealthData {
@@ -31,38 +32,36 @@ interface GarminStatus {
   connectedAt?: string
 }
 
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch')
+  return res.json()
+})
+
+const getHealthKey = () => {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  return `/api/health?start=${formatDate(thirtyDaysAgo)}&end=${formatDate(new Date())}`
+}
+
+const GARMIN_STATUS_KEY = '/api/garmin/status'
+
 export function useHealth() {
-  const [healthData, setHealthData] = useState<HealthData[]>([])
-  const [garminStatus, setGarminStatus] = useState<GarminStatus>({ connected: false, lastSync: null })
-  const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchGarminStatus = useCallback(async () => {
-    try {
-      const res = await fetch('/api/garmin/status')
-      if (!res.ok) throw new Error('Failed to fetch Garmin status')
-      const data = await res.json()
-      setGarminStatus(data)
-    } catch (err) {
-      console.error('Error fetching Garmin status:', err)
-    }
-  }, [])
+  const { data: healthData = [], isLoading: healthLoading } = useSWR<HealthData[]>(
+    getHealthKey,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
 
-  const fetchHealthData = useCallback(async (startDate?: string, endDate?: string) => {
-    try {
-      const params = new URLSearchParams()
-      if (startDate) params.set('start', startDate)
-      if (endDate) params.set('end', endDate)
-      
-      const res = await fetch(`/api/health?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch health data')
-      const data = await res.json()
-      setHealthData(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-    }
-  }, [])
+  const { data: garminStatus = { connected: false, lastSync: null }, isLoading: statusLoading } = useSWR<GarminStatus>(
+    GARMIN_STATUS_KEY,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  )
+
+  const loading = healthLoading || statusLoading
 
   const connectGarmin = async (email: string, password: string) => {
     const res = await fetch('/api/garmin/connect', {
@@ -76,14 +75,14 @@ export function useHealth() {
       throw new Error(data.error || 'Failed to connect')
     }
     
-    await fetchGarminStatus()
+    mutate(GARMIN_STATUS_KEY)
     return true
   }
 
   const disconnectGarmin = async () => {
     const res = await fetch('/api/garmin/status', { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to disconnect')
-    setGarminStatus({ connected: false, lastSync: null })
+    mutate(GARMIN_STATUS_KEY, { connected: false, lastSync: null }, false)
   }
 
   const syncGarmin = async (date?: string) => {
@@ -101,7 +100,8 @@ export function useHealth() {
         throw new Error(data.error || 'Sync failed')
       }
       
-      await Promise.all([fetchGarminStatus(), fetchHealthData()])
+      mutate(GARMIN_STATUS_KEY)
+      mutate(getHealthKey())
       return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed')
@@ -111,9 +111,9 @@ export function useHealth() {
     }
   }
 
-  const getTodayHealth = (): HealthData | undefined => {
+  const getTodayHealth = useMemo((): HealthData | undefined => {
     return healthData.find(h => h.date === formatDate(new Date()))
-  }
+  }, [healthData])
 
   const formatSleepDuration = (seconds: number | null): string => {
     if (!seconds) return '--'
@@ -121,20 +121,6 @@ export function useHealth() {
     const minutes = Math.floor((seconds % 3600) / 60)
     return `${hours}h ${minutes}m`
   }
-
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      await Promise.all([
-        fetchGarminStatus(),
-        fetchHealthData(formatDate(thirtyDaysAgo), formatDate(new Date())),
-      ])
-      setLoading(false)
-    }
-    init()
-  }, [fetchGarminStatus, fetchHealthData])
 
   return {
     healthData,
@@ -147,6 +133,9 @@ export function useHealth() {
     syncGarmin,
     getTodayHealth,
     formatSleepDuration,
-    refetch: () => Promise.all([fetchGarminStatus(), fetchHealthData()]),
+    refetch: () => {
+      mutate(GARMIN_STATUS_KEY)
+      mutate(getHealthKey())
+    },
   }
 }

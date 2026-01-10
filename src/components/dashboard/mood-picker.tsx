@@ -105,7 +105,7 @@ export function MoodPicker({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex w-full items-center justify-between">
           <CardTitle>How are you feeling?</CardTitle>
           {showDatePicker && (
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>

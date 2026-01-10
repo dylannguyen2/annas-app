@@ -21,7 +21,7 @@ export default function HealthPage() {
     formatSleepDuration 
   } = useHealth()
 
-  const todayHealth = getTodayHealth()
+  const todayHealth = getTodayHealth
   const latestHealth = healthData[0]
 
   const handleSync = async () => {
