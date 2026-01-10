@@ -14,7 +14,10 @@ export async function createGarminClientFromTokens(
   oauth1Token: any,
   oauth2Token: any
 ) {
-  const client = new GarminConnect()
+  const client = new GarminConnect({
+    username: 'token-auth',
+    password: 'token-auth',
+  })
   client.loadToken(oauth1Token, oauth2Token)
   return client
 }
@@ -63,5 +66,44 @@ export function parseHeartRateData(heartRateData: any) {
     min_heart_rate: heartRateData.minHeartRate || null,
     max_heart_rate: heartRateData.maxHeartRate || null,
     avg_heart_rate: null,
+  }
+}
+
+export async function fetchActivities(client: GarminConnect, start = 0, limit = 20) {
+  const activities = await client.getActivities(start, limit)
+  return activities || []
+}
+
+export function parseActivityData(activity: any) {
+  return {
+    garmin_activity_id: activity.activityId,
+    activity_name: activity.activityName || null,
+    activity_type: activity.activityType?.typeKey || null,
+    activity_type_id: activity.activityType?.typeId || null,
+    start_time: activity.startTimeGMT ? new Date(activity.startTimeGMT).toISOString() : null,
+    duration_seconds: activity.duration || null,
+    moving_duration_seconds: activity.movingDuration || null,
+    elapsed_duration_seconds: activity.elapsedDuration || null,
+    distance_meters: activity.distance || null,
+    calories: activity.calories || null,
+    avg_heart_rate: activity.averageHR || null,
+    max_heart_rate: activity.maxHR || null,
+    avg_speed: activity.averageSpeed || null,
+    max_speed: activity.maxSpeed || null,
+    elevation_gain: activity.elevationGain || null,
+    elevation_loss: activity.elevationLoss || null,
+    steps: activity.steps || null,
+    avg_cadence: activity.averageRunningCadenceInStepsPerMinute || null,
+    max_cadence: activity.maxRunningCadenceInStepsPerMinute || null,
+    avg_power: activity.avgPower || null,
+    max_power: activity.maxPower || null,
+    total_sets: activity.totalSets || null,
+    total_reps: activity.totalReps || null,
+    location_name: activity.locationName || null,
+    start_latitude: activity.startLatitude || null,
+    start_longitude: activity.startLongitude || null,
+    has_polyline: activity.hasPolyline || false,
+    favorite: activity.favorite || false,
+    raw_data: activity,
   }
 }

@@ -42,7 +42,10 @@ export function useWorkouts() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-    if (!res.ok) throw new Error('Failed to create workout')
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Failed to create workout')
+    }
     const newWorkout = await res.json()
     setWorkouts(prev => [newWorkout, ...prev])
     return newWorkout

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { createGarminClientFromTokens, fetchGarminData, parseSleepData, parseHeartRateData, getGarminTokens, fetchActivities, parseActivityData } from '@/lib/garmin/client'
+import { createGarminClientFromTokens, fetchActivities, parseActivityData, getGarminTokens } from '@/lib/garmin/client'
 import { decryptTokens, encryptTokens } from '@/lib/garmin/encryption'
 
 export async function POST(request: Request) {
@@ -12,8 +12,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { date } = body
-  const syncDate = date ? new Date(date) : new Date()
+  const { start = 0, limit = 20 } = body
 
   const { data: credentials } = await supabase
     .from('garmin_credentials')
@@ -25,12 +24,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Garmin not connected' }, { status: 400 })
   }
 
+  if (!credentials.oauth1_token || !credentials.oauth2_token) {
+    return NextResponse.json({ error: 'Garmin tokens missing - please reconnect in Settings' }, { status: 400 })
+  }
+
   try {
     const oauth1Token = decryptTokens(credentials.oauth1_token as string)
     const oauth2Token = decryptTokens(credentials.oauth2_token as string)
 
+    console.log('OAuth1 token exists:', !!oauth1Token)
+    console.log('OAuth2 token exists:', !!oauth2Token)
+
     const client = await createGarminClientFromTokens(oauth1Token, oauth2Token)
-    const rawData = await fetchGarminData(client, syncDate)
+    const rawActivities = await fetchActivities(client, start, limit)
 
     const newTokens = getGarminTokens(client)
     if (newTokens.oauth1Token && newTokens.oauth2Token) {
@@ -39,85 +45,75 @@ export async function POST(request: Request) {
         .update({
           oauth1_token: encryptTokens(newTokens.oauth1Token),
           oauth2_token: encryptTokens(newTokens.oauth2Token),
-          last_sync_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id)
     }
 
-    const sleepParsed = parseSleepData(rawData.sleep)
-    const heartParsed = parseHeartRateData(rawData.heartRate)
-
-    const dateStr = syncDate.toISOString().split('T')[0]
-
-    const healthData = {
-      user_id: user.id,
-      date: dateStr,
-      steps: rawData.steps || null,
-      ...sleepParsed,
-      ...heartParsed,
-      raw_sleep_data: rawData.sleep,
-      raw_heart_data: rawData.heartRate,
-      synced_at: new Date().toISOString(),
-    }
-
-    const { data: existing } = await supabase
-      .from('health_data')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('date', dateStr)
-      .single()
-
-    if (existing) {
-      await supabase
-        .from('health_data')
-        .update(healthData)
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('health_data')
-        .insert(healthData)
-    }
-
-    const rawActivities = await fetchActivities(client, 0, 20)
     const activities = rawActivities.map(parseActivityData)
-    let activitiesSynced = 0
 
     for (const activity of activities) {
-      const { data: existingActivity } = await supabase
+      const { data: existing } = await supabase
         .from('activities')
         .select('id')
         .eq('user_id', user.id)
         .eq('garmin_activity_id', activity.garmin_activity_id)
         .single()
 
-      if (existingActivity) {
+      if (existing) {
         await supabase
           .from('activities')
           .update({ ...activity, synced_at: new Date().toISOString() })
-          .eq('id', existingActivity.id)
+          .eq('id', existing.id)
       } else {
         await supabase
           .from('activities')
           .insert({ ...activity, user_id: user.id, synced_at: new Date().toISOString() })
       }
-      activitiesSynced++
     }
 
     return NextResponse.json({
       success: true,
-      date: dateStr,
-      data: {
-        steps: rawData.steps,
-        sleep: sleepParsed,
-        heartRate: heartParsed,
-        activitiesSynced,
-      },
+      count: activities.length,
+      activities,
     })
   } catch (error) {
-    console.error('Garmin sync error:', error)
+    console.error('Garmin activities sync error:', error)
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Failed to sync with Garmin' 
+      error: error instanceof Error ? error.message : 'Failed to fetch activities' 
     }, { status: 500 })
   }
+}
+
+export async function GET(request: Request) {
+  const supabase = await createClient()
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const limit = parseInt(searchParams.get('limit') || '50')
+  const offset = parseInt(searchParams.get('offset') || '0')
+  const activityType = searchParams.get('type')
+
+  let query = supabase
+    .from('activities')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('start_time', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (activityType) {
+    query = query.eq('activity_type', activityType)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(data)
 }

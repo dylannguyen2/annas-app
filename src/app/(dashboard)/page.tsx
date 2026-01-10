@@ -157,8 +157,18 @@ export default function DashboardPage() {
                 </span>
               )}
             </div>
+            {totalHabits > 0 && (
+              <HabitForm
+                onSubmit={createHabit}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                }
+              />
+            )}
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent className="">
             {habits.length === 0 ? (
               <div className="text-center py-10">
                 <div className="text-5xl mb-4 animate-bounce">🌱</div>
@@ -203,7 +213,7 @@ export default function DashboardPage() {
           <CardHeader className="pb-4">
             <CardTitle>Quick Mood Check</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6 flex-grow flex items-center justify-center">
+          <CardContent className="flex-grow flex items-center justify-center">
             {todayMood?.mood ? (
               <div className="text-center py-4">
                 <div className="text-6xl animate-wiggle mb-4 filter drop-shadow-lg">{MOOD_EMOJIS[todayMood.mood]}</div>

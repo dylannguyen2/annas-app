@@ -269,6 +269,145 @@ export interface Database {
           updated_at?: string
         }
       }
+      meals: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+          photo_url: string | null
+          description: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+          photo_url?: string | null
+          description?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          meal_type?: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+          photo_url?: string | null
+          description?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+      }
+      activities: {
+        Row: {
+          id: string
+          user_id: string
+          garmin_activity_id: number
+          activity_name: string | null
+          activity_type: string | null
+          activity_type_id: number | null
+          start_time: string | null
+          duration_seconds: number | null
+          moving_duration_seconds: number | null
+          elapsed_duration_seconds: number | null
+          distance_meters: number | null
+          calories: number | null
+          avg_heart_rate: number | null
+          max_heart_rate: number | null
+          avg_speed: number | null
+          max_speed: number | null
+          elevation_gain: number | null
+          elevation_loss: number | null
+          steps: number | null
+          avg_cadence: number | null
+          max_cadence: number | null
+          avg_power: number | null
+          max_power: number | null
+          total_sets: number | null
+          total_reps: number | null
+          location_name: string | null
+          start_latitude: number | null
+          start_longitude: number | null
+          has_polyline: boolean
+          favorite: boolean
+          raw_data: Json | null
+          synced_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          garmin_activity_id: number
+          activity_name?: string | null
+          activity_type?: string | null
+          activity_type_id?: number | null
+          start_time?: string | null
+          duration_seconds?: number | null
+          moving_duration_seconds?: number | null
+          elapsed_duration_seconds?: number | null
+          distance_meters?: number | null
+          calories?: number | null
+          avg_heart_rate?: number | null
+          max_heart_rate?: number | null
+          avg_speed?: number | null
+          max_speed?: number | null
+          elevation_gain?: number | null
+          elevation_loss?: number | null
+          steps?: number | null
+          avg_cadence?: number | null
+          max_cadence?: number | null
+          avg_power?: number | null
+          max_power?: number | null
+          total_sets?: number | null
+          total_reps?: number | null
+          location_name?: string | null
+          start_latitude?: number | null
+          start_longitude?: number | null
+          has_polyline?: boolean
+          favorite?: boolean
+          raw_data?: Json | null
+          synced_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          garmin_activity_id?: number
+          activity_name?: string | null
+          activity_type?: string | null
+          activity_type_id?: number | null
+          start_time?: string | null
+          duration_seconds?: number | null
+          moving_duration_seconds?: number | null
+          elapsed_duration_seconds?: number | null
+          distance_meters?: number | null
+          calories?: number | null
+          avg_heart_rate?: number | null
+          max_heart_rate?: number | null
+          avg_speed?: number | null
+          max_speed?: number | null
+          elevation_gain?: number | null
+          elevation_loss?: number | null
+          steps?: number | null
+          avg_cadence?: number | null
+          max_cadence?: number | null
+          avg_power?: number | null
+          max_power?: number | null
+          total_sets?: number | null
+          total_reps?: number | null
+          location_name?: string | null
+          start_latitude?: number | null
+          start_longitude?: number | null
+          has_polyline?: boolean
+          favorite?: boolean
+          raw_data?: Json | null
+          synced_at?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -293,3 +432,5 @@ export type Mood = Tables<'moods'>
 export type HealthData = Tables<'health_data'>
 export type DailyEntry = Tables<'daily_entries'>
 export type GarminCredentials = Tables<'garmin_credentials'>
+export type Meal = Tables<'meals'>
+export type Activity = Tables<'activities'>

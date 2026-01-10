@@ -137,11 +137,11 @@ export default function CyclePage() {
     ovulation: cycleInfo.ovulationDay ? [new Date(cycleInfo.ovulationDay)] : [],
   }
 
-  const modifiersStyles = {
-    period: { backgroundColor: 'hsl(var(--primary))', color: 'white', borderRadius: '50%' },
-    predicted: { backgroundColor: 'hsl(var(--primary) / 0.3)', borderRadius: '50%' },
-    fertile: { backgroundColor: 'hsl(142 76% 85%)', borderRadius: '50%' },
-    ovulation: { backgroundColor: 'hsl(142 76% 65%)', color: 'white', borderRadius: '50%' },
+  const modifiersClassNames = {
+    period: 'period-day',
+    predicted: 'predicted-day',
+    fertile: 'fertile-day',
+    ovulation: 'ovulation-day',
   }
 
   if (loading) {
@@ -153,123 +153,116 @@ export default function CyclePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Cycle Tracker</h2>
-        <p className="text-muted-foreground">
-          Track your period and predict your cycle
-        </p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Cycle Tracker</h2>
+          <p className="text-muted-foreground text-sm">
+            Track your period and predict your cycle
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cycle Day</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {cycleInfo.currentCycleDay ? `Day ${cycleInfo.currentCycleDay}` : '--'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {cycleInfo.isOnPeriod ? 'On period' : 'Not on period'}
-            </p>
-          </CardContent>
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        <Card className="p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-muted-foreground">Cycle Day</span>
+            <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+          </div>
+          <div className="text-xl font-bold">
+            {cycleInfo.currentCycleDay ? `Day ${cycleInfo.currentCycleDay}` : '--'}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {cycleInfo.isOnPeriod ? 'On period' : 'Not on period'}
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Period</CardTitle>
-            <Droplet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {cycleInfo.nextPeriodPrediction 
-                ? new Date(cycleInfo.nextPeriodPrediction).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
-                : '--'
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {cycleInfo.nextPeriodPrediction && (
-                <>
-                  {Math.ceil((new Date(cycleInfo.nextPeriodPrediction).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days away
-                </>
-              )}
-            </p>
-          </CardContent>
+        <Card className="p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-muted-foreground">Next Period</span>
+            <Droplet className="h-3 w-3 text-muted-foreground" />
+          </div>
+          <div className="text-xl font-bold">
+            {cycleInfo.nextPeriodPrediction 
+              ? new Date(cycleInfo.nextPeriodPrediction).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
+              : '--'
+            }
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {cycleInfo.nextPeriodPrediction && (
+              <>
+                {Math.ceil((new Date(cycleInfo.nextPeriodPrediction).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days away
+              </>
+            )}
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fertile Window</CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {cycleInfo.fertileWindowStart 
-                ? `${new Date(cycleInfo.fertileWindowStart).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}`
-                : '--'
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {cycleInfo.ovulationDay && (
-                <>Ovulation: {new Date(cycleInfo.ovulationDay).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}</>
-              )}
-            </p>
-          </CardContent>
+        <Card className="p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-muted-foreground">Fertile Window</span>
+            <Heart className="h-3 w-3 text-muted-foreground" />
+          </div>
+          <div className="text-xl font-bold">
+            {cycleInfo.fertileWindowStart 
+              ? `${new Date(cycleInfo.fertileWindowStart).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}`
+              : '--'
+            }
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {cycleInfo.ovulationDay && (
+              <>Ovulation: {new Date(cycleInfo.ovulationDay).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}</>
+            )}
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Cycle</CardTitle>
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{settings.average_cycle_length} days</div>
-            <p className="text-xs text-muted-foreground">
-              Period: {settings.average_period_length} days
-            </p>
-          </CardContent>
+        <Card className="p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-muted-foreground">Avg Cycle</span>
+            <Sparkles className="h-3 w-3 text-muted-foreground" />
+          </div>
+          <div className="text-xl font-bold">{settings.average_cycle_length} days</div>
+          <p className="text-xs text-muted-foreground">
+            Period: {settings.average_period_length} days
+          </p>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[400px_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Calendar</CardTitle>
-            <CardDescription>Tap a date to log or edit</CardDescription>
+      <div className="grid gap-3 lg:grid-cols-[320px_1fr]">
+        <Card className="flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Calendar</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col pt-0">
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={handleDateSelect}
-              className="rounded-md"
+              className="rounded-md [&_.period-day_button]:bg-primary [&_.period-day_button]:text-primary-foreground [&_.period-day_button]:rounded-full [&_.predicted-day_button]:bg-primary/30 [&_.predicted-day_button]:rounded-full [&_.fertile-day_button]:bg-green-200 [&_.fertile-day_button]:rounded-full [&_.ovulation-day_button]:bg-green-400 [&_.ovulation-day_button]:text-white [&_.ovulation-day_button]:rounded-full"
               modifiers={modifiers}
-              modifiersStyles={modifiersStyles}
+              modifiersClassNames={modifiersClassNames}
             />
-            <div className="mt-4 flex flex-wrap gap-3 text-xs">
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-primary" />
+                <div className="w-2 h-2 rounded-full bg-primary" />
                 <span>Period</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-primary/30" />
+                <div className="w-2 h-2 rounded-full bg-primary/30" />
                 <span>Predicted</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(142 76% 85%)' }} />
+                <div className="w-2 h-2 rounded-full bg-green-200" />
                 <span>Fertile</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(142 76% 65%)' }} />
+                <div className="w-2 h-2 rounded-full bg-green-400" />
                 <span>Ovulation</span>
               </div>
             </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full mt-4" disabled={!selectedDate}>
+                <Button className="w-full mt-3" size="sm" disabled={!selectedDate}>
                   {existingLog ? 'Edit Log' : 'Log Period'}
                 </Button>
               </DialogTrigger>
@@ -343,34 +336,33 @@ export default function CyclePage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Cycles</CardTitle>
-              <CardDescription>Your cycle history</CardDescription>
+        <div className="flex flex-col gap-4">
+          <Card className="flex flex-col">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Recent Cycles</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {recentCycles.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {recentCycles.map((cycle, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div key={i} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-sm">
                           {new Date(cycle.start).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
                           {' - '}
                           {new Date(cycle.end).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          Started {new Date(cycle.start).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(cycle.start).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' })}
                         </p>
                       </div>
-                      <Badge variant="secondary">{cycle.length} days</Badge>
+                      <Badge variant="secondary" className="text-xs">{cycle.length}d</Badge>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  Log your first period to start tracking cycles
+                <p className="text-muted-foreground text-center py-4 text-sm">
+                  Log your first period to start tracking
                 </p>
               )}
             </CardContent>
@@ -378,27 +370,27 @@ export default function CyclePage() {
 
           {selectedDate && existingLog && (
             <Card>
-              <CardHeader>
-                <CardTitle>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">
                   {selectedDate.toLocaleDateString('en-AU', { month: 'long', day: 'numeric' })}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2 pt-0">
                 {existingLog.flow_intensity && (
                   <div className="flex items-center gap-2">
-                    <Droplet className="h-4 w-4 text-primary" />
-                    <span className="capitalize">{existingLog.flow_intensity} flow</span>
+                    <Droplet className="h-3 w-3 text-primary" />
+                    <span className="capitalize text-sm">{existingLog.flow_intensity} flow</span>
                   </div>
                 )}
                 {existingLog.symptoms && existingLog.symptoms.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1">
                     {existingLog.symptoms.map(s => (
-                      <Badge key={s} variant="secondary">{s}</Badge>
+                      <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
                     ))}
                   </div>
                 )}
                 {existingLog.notes && (
-                  <p className="text-sm text-muted-foreground">{existingLog.notes}</p>
+                  <p className="text-xs text-muted-foreground">{existingLog.notes}</p>
                 )}
               </CardContent>
             </Card>

@@ -34,6 +34,7 @@ const WORKOUT_ICONS: Record<string, string> = {
   gym: '🏋️',
   yoga: '🧘',
   walking: '🚶',
+  'dog-walking': '🐕',
   hiking: '🥾',
   sports: '⚽',
   other: '💪',

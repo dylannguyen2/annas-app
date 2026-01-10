@@ -93,7 +93,7 @@ export default function HabitsPage() {
       
       {selectedDate && selectedDateStr && (
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
                 {isToday ? "Today's Habits" : format(selectedDate, 'EEEE, MMMM d')}
@@ -145,17 +145,30 @@ export default function HabitsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {habits.map((habit) => (
-            <HabitCard
-              key={habit.id}
-              habit={habit}
-              completedDates={getCompletionDates(habit.id)}
-              onToggle={toggleCompletion}
-              onUpdate={updateHabit}
-              onDelete={deleteHabit}
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {habits.map((habit) => (
+              <HabitCard
+                key={habit.id}
+                habit={habit}
+                completedDates={getCompletionDates(habit.id)}
+                onToggle={toggleCompletion}
+                onUpdate={updateHabit}
+                onDelete={deleteHabit}
+              />
+            ))}
+          </div>
+          <div className="flex justify-center">
+            <HabitForm
+              onSubmit={createHabit}
+              trigger={
+                <Button variant="outline" size="lg" className="gap-2">
+                  <Plus className="h-5 w-5" />
+                  Add New Habit
+                </Button>
+              }
             />
-          ))}
+          </div>
         </div>
       )}
     </div>

@@ -9,13 +9,19 @@ import { Loader2, Trash2, Clock, Flame } from 'lucide-react'
 
 const WORKOUT_ICONS: Record<string, string> = {
   running: '🏃',
+  treadmill: '🏃‍♂️',
   cycling: '🚴',
   swimming: '🏊',
   weights: '🏋️',
   yoga: '🧘',
+  'hot-yoga': '🔥',
+  pilates: '🤸‍♀️',
+  reformer: '🤸‍♀️',
   hiit: '💪',
   walking: '🚶',
+  'dog-walking': '🐕',
   sports: '⚽',
+  cardio: '💓',
   other: '🎯',
 }
 

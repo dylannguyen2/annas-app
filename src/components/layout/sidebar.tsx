@@ -16,7 +16,9 @@ import {
   Droplet,
   Sparkles,
   Flower2,
-  Menu
+  Menu,
+  UtensilsCrossed,
+  Activity
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -24,7 +26,9 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Mood', href: '/mood', icon: Smile },
+  { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
   { name: 'Workouts', href: '/workouts', icon: Dumbbell },
+  { name: 'Activities', href: '/activities', icon: Activity },
   { name: 'Cycle', href: '/cycle', icon: Droplet },
   { name: 'Health', href: '/health', icon: Heart },
   { name: 'Insights', href: '/insights', icon: Lightbulb },
@@ -50,13 +54,13 @@ export function Sidebar() {
             isCollapsed ? "justify-center px-2" : "gap-3 px-2"
           )}>
             <div className="p-2 bg-primary/10 rounded-xl flex-shrink-0">
-              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+              <img src="/anna.jpeg" alt="Anna's World" className="w-9 h-9 rounded-full" width={36} height={36} />
             </div>
             <h1 className={cn(
               "text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap transition-all duration-300 origin-left",
               isCollapsed ? "opacity-0 w-0 scale-0" : "opacity-100 w-auto scale-100"
             )}>
-              Anna&apos;s App
+              Anna's World
             </h1>
           </div>
         </div>

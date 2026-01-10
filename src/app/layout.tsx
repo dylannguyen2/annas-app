@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Anna's App",
+  title: "Anna's World",
   description: 'Track your habits, mood, and health data',
 }
 

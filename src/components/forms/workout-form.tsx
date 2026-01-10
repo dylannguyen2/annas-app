@@ -24,13 +24,17 @@ import { formatDate } from '@/lib/utils/dates'
 
 const WORKOUT_TYPES = [
   { value: 'running', label: 'Running', icon: '🏃' },
+  { value: 'treadmill', label: 'Treadmill', icon: '🏃‍♂️' },
   { value: 'cycling', label: 'Cycling', icon: '🚴' },
   { value: 'swimming', label: 'Swimming', icon: '🏊' },
-  { value: 'weights', label: 'Weight Training', icon: '🏋️' },
+  { value: 'weights', label: 'Weights', icon: '🏋️' },
   { value: 'yoga', label: 'Yoga', icon: '🧘' },
+  { value: 'hot-yoga', label: 'Hot Yoga', icon: '🔥' },
+  { value: 'pilates', label: 'Pilates', icon: '🤸‍♀️' },
+  { value: 'reformer', label: 'Reformer', icon: '🤸‍♀️' },
   { value: 'hiit', label: 'HIIT', icon: '💪' },
   { value: 'walking', label: 'Walking', icon: '🚶' },
-  { value: 'sports', label: 'Sports', icon: '⚽' },
+  { value: 'cardio', label: 'Cardio', icon: '💓' },
   { value: 'other', label: 'Other', icon: '🎯' },
 ]
 
@@ -112,20 +116,20 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
 
           <div className="space-y-2">
             <Label>Workout Type</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-1.5 max-h-48 overflow-y-auto [scrollbar-width:none]">
               {WORKOUT_TYPES.map((type) => (
                 <button
                   key={type.value}
                   type="button"
                   onClick={() => setWorkoutType(type.value)}
-                  className={`flex flex-col items-center p-3 rounded-lg transition-all text-sm ${
+                  className={`flex flex-col items-center p-2 rounded-lg transition-all cursor-pointer ${
                     workoutType === type.value
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-secondary hover:bg-accent'
                   }`}
                 >
-                  <span className="text-xl mb-1">{type.icon}</span>
-                  <span className="text-xs">{type.label}</span>
+                  <span className="text-lg">{type.icon}</span>
+                  <span className="text-[10px] leading-tight">{type.label}</span>
                 </button>
               ))}
             </div>
@@ -174,7 +178,7 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !workoutType}>
+            <Button type="submit" disabled={loading || !workoutType || !date || !duration || !intensity}>
               {loading ? 'Saving...' : 'Save Workout'}
             </Button>
           </div>
