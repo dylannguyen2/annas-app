@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useMeals, type MealType } from '@/hooks/use-meals'
 import { MealForm } from '@/components/forms/meal-form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,14 +64,6 @@ export default function MealsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadInputRef = useRef<HTMLInputElement>(null)
   const addPhotoInputRef = useRef<HTMLInputElement>(null)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
   
   const selectedDateStr = formatDate(selectedDate)
   const mealsForDate = getMealsForDate(selectedDateStr)
@@ -122,9 +114,18 @@ export default function MealsPage() {
     fileInputRef.current?.click()
   }
 
+  const handleUpload = () => {
+    setQuickCaptureDate(selectedDate)
+    setPhotoPreview(null)
+    uploadInputRef.current?.click()
+  }
+
   const handleQuickCapturePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    const isUpload = e.target === uploadInputRef.current
+    const dateToUse = isUpload ? selectedDate : quickCaptureDate
 
     const reader = new FileReader()
     reader.onloadend = () => setPhotoPreview(reader.result as string)
@@ -135,8 +136,8 @@ export default function MealsPage() {
     try {
       const url = await uploadPhoto(file)
       await createMeal({
-        date: formatDate(quickCaptureDate),
-        meal_type: getMealTypeFromTime(quickCaptureDate),
+        date: formatDate(dateToUse),
+        meal_type: getMealTypeFromTime(dateToUse),
         photo_url: url,
       })
       setQuickCaptureOpen(false)
@@ -146,6 +147,7 @@ export default function MealsPage() {
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+      if (uploadInputRef.current) uploadInputRef.current.value = ''
     }
   }
 
@@ -209,7 +211,7 @@ export default function MealsPage() {
   }
 
   return (
-    <div className="space-y-6 min-h-[calc(100vh-8rem)]" onClick={() => setSelectedPhoto(null)}>
+    <div className="space-y-6 w-full max-w-full overflow-x-hidden" onClick={() => setSelectedPhoto(null)}>
       <input
         ref={fileInputRef}
         type="file"
@@ -242,43 +244,40 @@ export default function MealsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isMobile ? (
-            <div className="relative">
-              <Button variant="outline" size="sm" className="gap-2">
+          <div className="relative lg:hidden">
+            <Button variant="outline" size="sm" className="gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              {isToday ? 'Today' : format(selectedDate, 'MMM d')}
+            </Button>
+            <input
+              type="date"
+              value={format(selectedDate, 'yyyy-MM-dd')}
+              max={format(new Date(), 'yyyy-MM-dd')}
+              onChange={(e) => e.target.value && setSelectedDate(new Date(e.target.value + 'T00:00:00'))}
+              className="absolute inset-0 z-10 opacity-0 cursor-pointer"
+            />
+          </div>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 hidden lg:flex">
                 <CalendarIcon className="h-4 w-4" />
                 {isToday ? 'Today' : format(selectedDate, 'MMM d')}
               </Button>
-              <input
-                type="date"
-                value={format(selectedDate, 'yyyy-MM-dd')}
-                max={format(new Date(), 'yyyy-MM-dd')}
-                onChange={(e) => e.target.value && setSelectedDate(new Date(e.target.value + 'T00:00:00'))}
-                className="absolute inset-0 opacity-0 cursor-pointer"
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                disabled={(date) => date > new Date()}
+                initialFocus
               />
-            </div>
-          ) : (
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  {isToday ? 'Today' : format(selectedDate, 'MMM d')}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  disabled={(date) => date > new Date()}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          )}
+            </PopoverContent>
+          </Popover>
           <Button 
             variant="outline"
             size="icon"
-            onClick={() => uploadInputRef.current?.click()}
+            onClick={handleUpload}
           >
             <ImagePlus className="h-4 w-4" />
           </Button>
@@ -356,10 +355,10 @@ export default function MealsPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex gap-4">
-        <div className="flex-1 min-w-0 space-y-4">
-          <div className="grid gap-4 md:grid-cols-[280px_1fr]">
-            <Card className="hidden md:block">
+      <div className="flex gap-4 w-full overflow-hidden">
+        <div className="flex-1 min-w-0 space-y-4 overflow-hidden">
+          <div className="flex flex-col md:grid gap-4 md:grid-cols-[280px_minmax(0,1fr)] overflow-hidden w-full">
+            <Card className="hidden md:block ">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Food Calendar</CardTitle>
               </CardHeader>
@@ -395,8 +394,30 @@ export default function MealsPage() {
     
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <CardContent className="p-0">
+                <div className="flex gap-3 overflow-x-auto p-3 max-w-[calc(100vw-2rem)] md:max-w-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <button 
+                    className="flex-shrink-0 size-32 md:size-72 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-all cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (mealsForDate.length > 0) {
+                        setAddingToMeal(mealsForDate[0])
+                        addPhotoInputRef.current?.click()
+                      } else {
+                        handleUpload()
+                      }
+                    }}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-6 w-6 md:h-10 md:w-10 text-primary/50 animate-spin" />
+                    ) : (
+                      <>
+                        <ImagePlus className="h-6 w-6 md:h-10 md:w-10 text-primary/50" />
+                        <span className="text-xs md:text-sm text-primary/50">Upload</span>
+                      </>
+                    )}
+                  </button>
                   {allPhotosForDate.map(({ url, meal }, index) => (
                     <div
                       key={`${meal.id}-${index}`}
@@ -464,89 +485,71 @@ export default function MealsPage() {
                       </div>
                     </div>
                   ))}
-                  <button 
-                    className="flex-shrink-0 size-32 md:size-72 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-all cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (mealsForDate.length > 0) {
-                        setAddingToMeal(mealsForDate[0])
-                        addPhotoInputRef.current?.click()
-                      } else {
-                        uploadInputRef.current?.click()
-                      }
-                    }}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-6 w-6 md:h-10 md:w-10 text-primary/50 animate-spin" />
-                    ) : (
-                      <>
-                        <ImagePlus className="h-6 w-6 md:h-10 md:w-10 text-primary/50" />
-                        <span className="text-xs md:text-sm text-primary/50">Upload</span>
-                      </>
-                    )}
-                  </button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {getPinnedMeals().length > 0 && (
-            <Card className="hidden lg:block">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Pin className="h-4 w-4" />
-                  Pinned Meals
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {getPinnedMeals().map(meal => {
-                    const photos = getPhotos(meal)
-                    const firstPhoto = photos[0]
-                    return (
-                      <div
-                        key={meal.id}
-                        className="group relative flex-shrink-0 w-32 rounded-xl overflow-hidden bg-secondary cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          firstPhoto && setSelectedPhoto({ url: firstPhoto, meal })
-                        }}
-                      >
-                        {firstPhoto ? (
-                          <img src={firstPhoto} alt="" className="w-full h-24 object-cover" />
-                        ) : (
-                          <div className="w-full h-24 flex items-center justify-center bg-secondary">
-                            <span className="text-3xl">{MEAL_ICONS[meal.meal_type]}</span>
-                          </div>
-                        )}
-                        <div className="p-2">
-                          <p className="text-xs font-medium truncate">{meal.description || MEAL_LABELS[meal.meal_type]}</p>
-                          {meal.location && (
-                            <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
-                              <MapPin className="h-2.5 w-2.5" />
-                              {meal.location}
-                            </p>
-                          )}
-                        </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          <Card className="hidden lg:block">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Pin className="h-4 w-4" />
+                Pinned Meals
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-36 w-full flex items-center justify-center">
+                {getPinnedMeals().length > 0 ? (
+                  <div className="flex gap-3 overflow-x-auto w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {getPinnedMeals().map(meal => {
+                      const photos = getPhotos(meal)
+                      const firstPhoto = photos[0]
+                      return (
+                        <div
+                          key={meal.id}
+                          className="group relative flex-shrink-0 w-32 rounded-xl overflow-hidden bg-secondary cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation()
-                            togglePin(meal.id)
+                            firstPhoto && setSelectedPhoto({ url: firstPhoto, meal })
                           }}
                         >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                          {firstPhoto ? (
+                            <img src={firstPhoto} alt="" className="w-full h-24 object-cover" />
+                          ) : (
+                            <div className="w-full h-24 flex items-center justify-center bg-secondary">
+                              <span className="text-3xl">{MEAL_ICONS[meal.meal_type]}</span>
+                            </div>
+                          )}
+                          <div className="p-2">
+                            <p className="text-xs font-medium truncate">{meal.description || MEAL_LABELS[meal.meal_type]}</p>
+                            {meal.location && (
+                              <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
+                                <MapPin className="h-2.5 w-2.5" />
+                                {meal.location}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              togglePin(meal.id)
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Pin meals to display here</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Card className="hidden lg:flex w-80 flex-shrink-0 sticky top-4 flex-col" onClick={(e) => e.stopPropagation()}>
@@ -755,95 +758,104 @@ export default function MealsPage() {
         </DialogContent>
       </Dialog>
 
-      {isMobile && (
-        <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
-          <DialogContent className="max-w-sm p-0 overflow-hidden rounded-xl border bg-card">
-            {selectedPhoto && (
-              <div>
-                <div className="px-4 py-3 border-b">
-                  <p className="font-semibold">Details</p>
-                </div>
-                <div className="p-4 space-y-4">
-                  <div className="relative">
-                    <img
-                      src={selectedPhoto.url}
-                      alt=""
-                      className="w-full rounded-lg cursor-pointer"
-                      onClick={() => setFullscreenPhoto(selectedPhoto.url)}
-                    />
-                    <div className="absolute bottom-2 right-2 flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="h-7 w-7 rounded-full bg-black/70 hover:bg-black/90 text-white cursor-pointer"
-                        onClick={() => setFullscreenPhoto(selectedPhoto.url)}
-                      >
-                        <Maximize2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="h-7 w-7 rounded-full bg-black/70 hover:bg-black/90 text-white cursor-pointer"
-                        onClick={() => handleDownloadPhoto(selectedPhoto.url)}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{MEAL_ICONS[selectedPhoto.meal.meal_type]}</span>
-                      <div>
-                        <p className="font-medium text-sm">{MEAL_LABELS[selectedPhoto.meal.meal_type]}</p>
-                        <p className="text-xs text-muted-foreground">{format(new Date(selectedPhoto.meal.date), 'MMM d')}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className={`h-7 w-7 cursor-pointer ${selectedPhoto.meal.pinned ? 'text-primary' : 'text-muted-foreground'}`}
-                        onClick={() => togglePin(selectedPhoto.meal.id)}
-                      >
-                        <Pin className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 cursor-pointer"
-                        onClick={() => {
-                          setSelectedPhoto(null)
-                          setEditingMeal(selectedPhoto.meal)
-                        }}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                  {selectedPhoto.meal.description && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">What I ate</p>
-                      <p className="text-sm">{selectedPhoto.meal.description}</p>
-                    </div>
-                  )}
-                  {selectedPhoto.meal.location && (
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span>{selectedPhoto.meal.location}</span>
-                    </div>
-                  )}
-                  {selectedPhoto.meal.notes && (
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
-                      <p className="text-sm italic text-muted-foreground">{selectedPhoto.meal.notes}</p>
-                    </div>
-                  )}
-                </div>
+      <Dialog open={!!selectedPhoto && typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden rounded-xl border bg-card">
+          {selectedPhoto && (
+            <div>
+              <div className="px-4 py-3 border-b">
+                <p className="font-semibold">Details</p>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+              <div className="p-4 space-y-4">
+                <div className="relative">
+                  <img
+                    src={selectedPhoto.url}
+                    alt=""
+                    className="w-full rounded-lg cursor-pointer"
+                    onClick={() => setFullscreenPhoto(selectedPhoto.url)}
+                  />
+                  <div className="absolute bottom-2 right-2 flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-7 w-7 rounded-full bg-black/70 hover:bg-black/90 text-white cursor-pointer"
+                      onClick={() => setFullscreenPhoto(selectedPhoto.url)}
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-7 w-7 rounded-full bg-black/70 hover:bg-black/90 text-white cursor-pointer"
+                      onClick={() => handleDownloadPhoto(selectedPhoto.url)}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{MEAL_ICONS[selectedPhoto.meal.meal_type]}</span>
+                    <div>
+                      <p className="font-medium text-sm">{MEAL_LABELS[selectedPhoto.meal.meal_type]}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(selectedPhoto.meal.date), 'MMM d')}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={`h-7 w-7 cursor-pointer ${selectedPhoto.meal.pinned ? 'text-primary' : 'text-muted-foreground'}`}
+                      onClick={() => togglePin(selectedPhoto.meal.id)}
+                    >
+                      <Pin className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 cursor-pointer"
+                      onClick={() => {
+                        setSelectedPhoto(null)
+                        setEditingMeal(selectedPhoto.meal)
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                      onClick={() => {
+                        deleteMeal(selectedPhoto.meal.id)
+                        setSelectedPhoto(null)
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                {selectedPhoto.meal.description && (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">What I ate</p>
+                    <p className="text-sm">{selectedPhoto.meal.description}</p>
+                  </div>
+                )}
+                {selectedPhoto.meal.location && (
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{selectedPhoto.meal.location}</span>
+                  </div>
+                )}
+                {selectedPhoto.meal.notes && (
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
+                    <p className="text-sm italic text-muted-foreground">{selectedPhoto.meal.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {editingMeal && (
         <MealForm
