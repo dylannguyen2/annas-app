@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { usePeriods } from '@/hooks/use-periods'
-import { Loader2, Droplet, Calendar as CalendarIcon, Heart, Sparkles } from 'lucide-react'
+import { Loader2, Droplet, Calendar as CalendarIcon, Heart, Sparkles, Trash2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils/dates'
 
 const FLOW_OPTIONS = [
@@ -227,7 +227,7 @@ export default function CyclePage() {
         </Card>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[320px_1fr]">
+      <div className="grid gap-3 lg:grid-cols-[25fr_75fr]">
         <Card className="flex flex-col">
           <CardHeader className="">
             <CardTitle className="text-base">Calendar</CardTitle>
@@ -360,6 +360,15 @@ export default function CyclePage() {
                     </div>
                   ))}
                 </div>
+              ) : periodLogs.filter(p => p.is_period_day).length > 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground text-sm">
+                    Tracking your first cycle
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Log your next period to see cycle history
+                  </p>
+                </div>
               ) : (
                 <p className="text-muted-foreground text-center py-4 text-sm">
                   Log your first period to start tracking
@@ -370,10 +379,21 @@ export default function CyclePage() {
 
           {selectedDate && existingLog && (
             <Card>
-              <CardHeader className="">
-                <CardTitle className="text-base">
-                  {selectedDate.toLocaleDateString('en-AU', { month: 'long', day: 'numeric' })}
-                </CardTitle>
+              <CardHeader className="space-y-0">
+                <div className="flex items-center justify-between w-full">
+                  <CardTitle className="text-base">
+                    {selectedDate.toLocaleDateString('en-AU', { month: 'long', day: 'numeric' })}
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={handleDelete}
+                    disabled={saving}
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
                 {existingLog.flow_intensity && (

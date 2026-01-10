@@ -107,7 +107,7 @@ export default function HabitsPage() {
             {habits.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">No habits yet</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {habits.map((habit) => {
                   const completed = isCompleted(habit.id, selectedDateStr)
                   return (

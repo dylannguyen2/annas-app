@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -15,6 +16,12 @@ interface CircularHabitTrackerProps {
 
 export function CircularHabitTracker({ habits, completions, isCompleted }: CircularHabitTrackerProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [hoveredSegment, setHoveredSegment] = useState<{ habit: string; day: number; completed: boolean; color: string; x: number; y: number } | null>(null)
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   const daysInMonth = getDaysInMonth(currentMonth)
   const year = currentMonth.getFullYear()
@@ -99,7 +106,7 @@ export function CircularHabitTracker({ habits, completions, isCompleted }: Circu
             <p className="text-sm">Add habits to see your tracker</p>
           </div>
         ) : (
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center relative">
             <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[320px]">
               {Array.from({ length: daysInMonth }, (_, i) => {
                 const day = i + 1
@@ -151,11 +158,30 @@ export function CircularHabitTracker({ habits, completions, isCompleted }: Circu
                           key={`${habit.id}-${day}`}
                           d={describeArc(center, center, habitInnerR, habitOuterR, startAngle, endAngle)}
                           fill={completed ? habit.color : 'currentColor'}
-                          className={completed ? '' : 'text-secondary/50'}
+                          className={`${completed ? '' : 'text-secondary/50'} cursor-pointer transition-opacity hover:opacity-80`}
                           opacity={completed ? 1 : 0.3}
-                        >
-                          <title>{`${habit.name} - Day ${day}: ${completed ? 'Done' : 'Not done'}`}</title>
-                        </path>
+                          onMouseEnter={(e) => {
+                            setHoveredSegment({
+                              habit: `${habit.icon} ${habit.name}`,
+                              day,
+                              completed,
+                              color: habit.color,
+                              x: e.clientX,
+                              y: e.clientY
+                            })
+                          }}
+                          onMouseMove={(e) => {
+                            setHoveredSegment({
+                              habit: `${habit.icon} ${habit.name}`,
+                              day,
+                              completed,
+                              color: habit.color,
+                              x: e.clientX,
+                              y: e.clientY
+                            })
+                          }}
+                          onMouseLeave={() => setHoveredSegment(null)}
+                        />
                       )
                     })}
                   </g>
@@ -170,11 +196,27 @@ export function CircularHabitTracker({ habits, completions, isCompleted }: Circu
               />
             </svg>
             
-            <div className="flex flex-wrap gap-3 mt-4 justify-center">
+            {mounted && hoveredSegment && createPortal(
+              <div 
+                className="fixed z-[9999] px-3 py-1.5 bg-foreground text-background rounded-md shadow-md pointer-events-none"
+                style={{
+                  left: hoveredSegment.x + 12,
+                  top: hoveredSegment.y - 40,
+                }}
+              >
+                <p className="font-medium text-xs whitespace-nowrap">{hoveredSegment.habit}</p>
+                <p className="text-background/70 text-xs whitespace-nowrap">
+                  Day {hoveredSegment.day} · {hoveredSegment.completed ? 'Completed' : 'Not done'}
+                </p>
+              </div>,
+              document.body
+            )}
+            
+            <div className="flex flex-wrap gap-3 mt-4 justify-center max-h-[100px] overflow-y-auto w-full">
               {habits.map((habit) => (
                 <div key={habit.id} className="flex items-center gap-1.5">
                   <div
-                    className="w-3 h-3 rounded-sm"
+                    className="w-3 h-3 rounded-sm shrink-0"
                     style={{ backgroundColor: habit.color }}
                   />
                   <span className="text-xs text-muted-foreground">{habit.icon} {habit.name}</span>

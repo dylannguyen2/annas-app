@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useMeals, type MealType } from '@/hooks/use-meals'
 import { MealForm } from '@/components/forms/meal-form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Loader2, CalendarIcon, Trash2, Pencil } from 'lucide-react'
+import { Loader2, CalendarIcon, Trash2, Pencil, Camera, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { formatDate, formatDisplayDate } from '@/lib/utils/dates'
 
@@ -36,12 +36,27 @@ const MEAL_LABELS: Record<MealType, string> = {
   snack: 'Snack',
 }
 
+const getMealTypeFromTime = (date: Date): MealType => {
+  const hour = date.getHours()
+  if (hour < 11) return 'breakfast'
+  if (hour < 15) return 'lunch'
+  if (hour < 21) return 'dinner'
+  return 'snack'
+}
+
 export default function MealsPage() {
   const { meals, loading, createMeal, updateMeal, deleteMeal, uploadPhoto, getMealsForDate } = useMeals()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null)
+  
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false)
+  const [quickCaptureDate, setQuickCaptureDate] = useState<Date>(new Date())
+  const [quickCaptureDateOpen, setQuickCaptureDateOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const selectedDateStr = formatDate(selectedDate)
   const mealsForDate = getMealsForDate(selectedDateStr)
@@ -72,6 +87,47 @@ export default function MealsPage() {
     setSelectedMeal(null)
   }
 
+  const handleQuickCapture = () => {
+    setQuickCaptureDate(new Date())
+    setPhotoPreview(null)
+    fileInputRef.current?.click()
+  }
+
+  const handleQuickCapturePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onloadend = () => setPhotoPreview(reader.result as string)
+    reader.readAsDataURL(file)
+    setQuickCaptureOpen(true)
+
+    setUploading(true)
+    try {
+      const url = await uploadPhoto(file)
+      await createMeal({
+        date: formatDate(quickCaptureDate),
+        meal_type: getMealTypeFromTime(quickCaptureDate),
+        photo_url: url,
+      })
+      setQuickCaptureOpen(false)
+      setPhotoPreview(null)
+    } catch (err) {
+      console.error('Failed to save meal:', err)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleQuickCaptureDateChange = async (date: Date | undefined) => {
+    if (!date || !photoPreview) return
+    setQuickCaptureDate(date)
+    setQuickCaptureDateOpen(false)
+  }
+
+  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -82,11 +138,20 @@ export default function MealsPage() {
 
   return (
     <div className="space-y-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleQuickCapturePhoto}
+        className="hidden"
+      />
+      
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Meals</h2>
           <p className="text-muted-foreground">
-            Track what you eat with photos
+            Snap a photo to log
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -107,9 +172,79 @@ export default function MealsPage() {
               />
             </PopoverContent>
           </Popover>
-          <MealForm onSubmit={createMeal} onUploadPhoto={uploadPhoto} />
+          <Button onClick={handleQuickCapture} className="gap-2">
+            <Camera className="h-4 w-4" />
+            Snap
+          </Button>
         </div>
       </div>
+      
+      <Dialog open={quickCaptureOpen} onOpenChange={setQuickCaptureOpen}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+          {photoPreview && (
+            <>
+              <div className="relative">
+                <img
+                  src={photoPreview}
+                  alt="Meal preview"
+                  className="w-full max-h-80 object-cover"
+                />
+                {uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <div className="text-center text-white">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                      <p className="text-sm">Saving...</p>
+                    </div>
+                  </div>
+                )}
+                {!uploading && (
+                  <div className="absolute top-3 right-3">
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white"
+                      onClick={() => {
+                        setQuickCaptureOpen(false)
+                        setPhotoPreview(null)
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {!uploading && (
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{MEAL_ICONS[getMealTypeFromTime(quickCaptureDate)]} {MEAL_LABELS[getMealTypeFromTime(quickCaptureDate)]}</p>
+                      <p className="text-sm text-muted-foreground">Auto-detected from time</p>
+                    </div>
+                    <Popover open={quickCaptureDateOpen} onOpenChange={setQuickCaptureDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <CalendarIcon className="h-4 w-4" />
+                          {format(quickCaptureDate, 'MMM d')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="single"
+                          selected={quickCaptureDate}
+                          onSelect={handleQuickCaptureDateChange}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">Saved! Tap anywhere to dismiss.</p>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>
@@ -129,7 +264,7 @@ export default function MealsPage() {
               />
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 max-h-[500px] overflow-y-auto">
               {mealsForDate.map((meal) => (
                 <div
                   key={meal.id}
@@ -169,8 +304,8 @@ export default function MealsPage() {
             <CardTitle>Recent Meals</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {meals.slice(0, 10).map((meal) => (
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              {meals.slice(0, 20).map((meal) => (
                 <div
                   key={meal.id}
                   onClick={() => setSelectedMeal(meal)}

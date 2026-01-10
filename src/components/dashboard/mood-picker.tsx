@@ -149,7 +149,7 @@ export function MoodPicker({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex justify-between">
+            <div className="flex items-center justify-between w-full">
               <Label>Energy Level</Label>
               <span className="text-sm text-muted-foreground">{energy}/5</span>
             </div>
@@ -168,7 +168,7 @@ export function MoodPicker({
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between">
+            <div className="flex items-center justify-between w-full">
               <Label>Stress Level</Label>
               <span className="text-sm text-muted-foreground">{stress}/5</span>
             </div>

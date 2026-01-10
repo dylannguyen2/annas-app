@@ -187,7 +187,7 @@ export default function HistoryPage() {
                     )}
                   </div>
                   {habits.length > 0 ? (
-                    <div className="pl-7 space-y-1">
+                    <div className="pl-7 space-y-1 max-h-[200px] overflow-y-auto">
                       {habits.map(habit => {
                         const completed = isCompleted(habit.id, selectedDateStr)
                         return (

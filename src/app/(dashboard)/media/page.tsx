@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useBooks, type Book, type SearchResult, type BookStatus } from '@/hooks/use-books'
+import { useMedia, type Media, type SearchResult, type MediaStatus, type MediaType } from '@/hooks/use-media'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -24,14 +25,15 @@ import {
 } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
 import { 
-  BookOpen, 
+  Film, 
+  Tv, 
   Search, 
   Plus, 
   Star, 
   Trash2, 
-  BookMarked, 
+  Bookmark, 
   CheckCircle2, 
-  Library, 
+  PlayCircle, 
   Loader2,
   TrendingUp,
   Calendar,
@@ -41,14 +43,21 @@ import {
   ArrowUpDown,
   X,
   ArrowLeft,
+  Clapperboard,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 const TABS = [
-  { id: 'want_to_read', label: 'Want to Read', icon: BookMarked },
-  { id: 'reading', label: 'Reading', icon: BookOpen },
+  { id: 'want_to_watch', label: 'Want to Watch', icon: Bookmark },
+  { id: 'watching', label: 'Watching', icon: PlayCircle },
   { id: 'finished', label: 'Finished', icon: CheckCircle2 },
+] as const
+
+const TYPE_FILTERS = [
+  { id: 'all', label: 'All', icon: null },
+  { id: 'movie', label: 'Movies', icon: Film },
+  { id: 'tv', label: 'TV Shows', icon: Tv },
 ] as const
 
 function StarRating({ 
@@ -102,32 +111,33 @@ function StarRating({
   )
 }
 
-function SearchBookDialog({ 
+function SearchMediaDialog({ 
   open, 
   onOpenChange,
-  searchBooks,
-  addBook,
+  searchMedia,
+  addMedia,
 }: { 
   open: boolean
   onOpenChange: (open: boolean) => void
-  searchBooks: (query: string) => Promise<SearchResult[]>
-  addBook: (data: Partial<Book> & { title: string }) => Promise<Book>
+  searchMedia: (query: string, type?: MediaType) => Promise<SearchResult[]>
+  addMedia: (data: Partial<Media> & { tmdb_id: number; media_type: MediaType; title: string }) => Promise<Media>
 }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<MediaType | undefined>(undefined)
   
-  const [finishedBook, setFinishedBook] = useState<SearchResult | null>(null)
+  const [finishedMedia, setFinishedMedia] = useState<SearchResult | null>(null)
   const [finishedRating, setFinishedRating] = useState(0)
   const [finishedDate, setFinishedDate] = useState(new Date().toISOString().split('T')[0])
 
   const [manualMode, setManualMode] = useState(false)
-  const [manualBook, setManualBook] = useState({
+  const [manualMedia, setManualMedia] = useState({
     title: '',
-    author: '',
-    cover_url: '',
-    status: 'want_to_read' as BookStatus,
+    media_type: 'movie' as MediaType,
+    poster_url: '',
+    status: 'want_to_watch' as MediaStatus,
     rating: 0,
     finished_at: new Date().toISOString().split('T')[0]
   })
@@ -135,16 +145,17 @@ function SearchBookDialog({
   useEffect(() => {
     if (!open) {
       setManualMode(false)
-      setManualBook({
+      setManualMedia({
         title: '',
-        author: '',
-        cover_url: '',
-        status: 'want_to_read',
+        media_type: 'movie',
+        poster_url: '',
+        status: 'want_to_watch',
         rating: 0,
         finished_at: new Date().toISOString().split('T')[0]
       })
       setQuery('')
       setResults([])
+      setTypeFilter(undefined)
     }
   }, [open])
 
@@ -157,100 +168,107 @@ function SearchBookDialog({
 
       setIsSearching(true)
       try {
-        const data = await searchBooks(query)
+        const data = await searchMedia(query, typeFilter)
         setResults(data)
       } catch (err) {
         console.error(err)
-        toast.error('Failed to search books')
+        toast.error('Failed to search')
       } finally {
         setIsSearching(false)
       }
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [query, searchBooks])
+  }, [query, typeFilter, searchMedia])
 
-  const handleAdd = async (book: SearchResult, status: BookStatus = 'want_to_read') => {
-    setAddingId(book.open_library_key)
+  const handleAdd = async (item: SearchResult, status: MediaStatus = 'want_to_watch') => {
+    const uniqueId = `${item.media_type}-${item.tmdb_id}`
+    setAddingId(uniqueId)
     try {
-      const bookData: Partial<Book> & { title: string } = {
-        ...book,
+      const mediaData: Parameters<typeof addMedia>[0] = {
+        ...item,
         status,
       }
-      if (status === 'reading') {
-        bookData.started_at = new Date().toISOString()
+      if (status === 'watching') {
+        mediaData.started_at = new Date().toISOString()
       }
-      await addBook(bookData)
-      toast.success(`Added "${book.title}" to your library`)
+      await addMedia(mediaData)
+      toast.success(`Added "${item.title}" to your library`)
       onOpenChange(false)
     } catch (error) {
       console.error(error)
-      toast.error('Failed to add book')
+      if (error instanceof Error && error.message.includes('already in your library')) {
+        toast.error('This title is already in your library')
+      } else {
+        toast.error('Failed to add')
+      }
     } finally {
       setAddingId(null)
     }
   }
 
   const handleAddAsFinished = async () => {
-    if (!finishedBook) return
-    setAddingId(finishedBook.open_library_key)
+    if (!finishedMedia) return
+    const uniqueId = `${finishedMedia.media_type}-${finishedMedia.tmdb_id}`
+    setAddingId(uniqueId)
     try {
-      await addBook({
-        ...finishedBook,
+      await addMedia({
+        ...finishedMedia,
         status: 'finished',
         rating: finishedRating || null,
         finished_at: finishedDate ? new Date(finishedDate).toISOString() : new Date().toISOString(),
         started_at: finishedDate ? new Date(finishedDate).toISOString() : new Date().toISOString(),
       })
-      toast.success(`Added "${finishedBook.title}" as finished`)
-      setFinishedBook(null)
+      toast.success(`Added "${finishedMedia.title}" as finished`)
+      setFinishedMedia(null)
       setFinishedRating(0)
       setFinishedDate(new Date().toISOString().split('T')[0])
       onOpenChange(false)
     } catch (error) {
       console.error(error)
-      toast.error('Failed to add book')
+      toast.error('Failed to add')
     } finally {
       setAddingId(null)
     }
   }
 
   const handleManualAdd = async () => {
-    if (!manualBook.title.trim()) {
+    if (!manualMedia.title.trim()) {
       toast.error('Title is required')
       return
     }
 
     try {
-      const bookData: Partial<Book> & { title: string } = {
-        title: manualBook.title,
-        author: manualBook.author,
-        cover_url: manualBook.cover_url,
-        status: manualBook.status,
+      const mediaData: Parameters<typeof addMedia>[0] = {
+        tmdb_id: Date.now(),
+        title: manualMedia.title,
+        media_type: manualMedia.media_type,
+        poster_url: manualMedia.poster_url || null,
+        status: manualMedia.status,
       }
 
-      if (manualBook.status === 'reading') {
-        bookData.started_at = new Date().toISOString()
-      } else if (manualBook.status === 'finished') {
-        const date = manualBook.finished_at ? new Date(manualBook.finished_at) : new Date()
-        bookData.finished_at = date.toISOString()
-        bookData.started_at = date.toISOString()
-        bookData.rating = manualBook.rating || null
+      if (manualMedia.status === 'watching') {
+        mediaData.started_at = new Date().toISOString()
+      } else if (manualMedia.status === 'finished') {
+        const date = manualMedia.finished_at ? new Date(manualMedia.finished_at) : new Date()
+        mediaData.finished_at = date.toISOString()
+        mediaData.started_at = date.toISOString()
+        mediaData.rating = manualMedia.rating || null
       }
 
-      await addBook(bookData)
-      toast.success(`Added "${manualBook.title}" to your library`)
+      await addMedia(mediaData)
+      toast.success(`Added "${manualMedia.title}" to your library`)
       onOpenChange(false)
     } catch (error) {
       console.error(error)
-      toast.error('Failed to add book')
+      toast.error('Failed to add')
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl [&>button]:hidden">
-        <DialogTitle className="sr-only">Search or Add Book</DialogTitle>
+        <DialogTitle className="sr-only">Search or Add Movie/TV Show</DialogTitle>
         <div className="p-4 border-b border-border/50 sticky top-0 z-10 bg-background/50">
           {manualMode ? (
             <div className="flex items-center gap-2 h-12">
@@ -265,35 +283,52 @@ function SearchBookDialog({
               <h2 className="text-lg font-semibold">Add Manually</h2>
             </div>
           ) : (
-            <div className="relative flex items-center">
-              <Search className="absolute left-3 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Search by title, author, or ISBN..."
-                className="pl-10 pr-10 h-12 text-lg border-none bg-secondary/30 focus-visible:ring-0 focus-visible:bg-secondary/50 transition-colors rounded-xl"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                autoFocus
-              />
-              {isSearching ? (
-                <div className="absolute right-3">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </div>
-              ) : query && (
-                <button 
-                  className="absolute right-3 p-1 rounded-full hover:bg-secondary cursor-pointer"
-                  onClick={() => setQuery('')}
-                >
-                  <span className="sr-only">Clear</span>
-                  <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
+            <div className="space-y-3">
+              <div className="relative flex items-center">
+                <Search className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  placeholder="Search movies and TV shows..."
+                  className="pl-10 pr-10 h-12 text-lg border-none bg-secondary/30 focus-visible:ring-0 focus-visible:bg-secondary/50 transition-colors rounded-xl"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  autoFocus
+                />
+                {isSearching ? (
+                  <div className="absolute right-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : query && (
+                  <button 
+                    className="absolute right-3 p-1 rounded-full hover:bg-secondary cursor-pointer"
+                    onClick={() => setQuery('')}
+                  >
+                    <span className="sr-only">Clear</span>
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {TYPE_FILTERS.map((type) => {
+                  const Icon = type.icon
+                  return (
+                    <Button
+                      key={type.id}
+                      variant={typeFilter === type.id || (type.id === 'all' && !typeFilter) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTypeFilter(type.id === 'all' ? undefined : type.id as MediaType)}
+                      className="gap-1.5"
+                    >
+                      {Icon && <Icon className="h-3.5 w-3.5" />}
+                      {type.label}
+                    </Button>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {manualMode ? (
             <div className="space-y-6 max-w-lg mx-auto py-2">
               <div className="space-y-4">
@@ -301,32 +336,46 @@ function SearchBookDialog({
                   <Label htmlFor="title" className="text-sm font-medium">Title <span className="text-red-500">*</span></Label>
                   <Input
                     id="title"
-                    placeholder="Enter book title"
-                    value={manualBook.title}
-                    onChange={(e) => setManualBook({ ...manualBook, title: e.target.value })}
+                    placeholder="Enter title"
+                    value={manualMedia.title}
+                    onChange={(e) => setManualMedia({ ...manualMedia, title: e.target.value })}
                     className="bg-secondary/20"
                     autoFocus
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="author" className="text-sm font-medium">Author</Label>
-                  <Input
-                    id="author"
-                    placeholder="Enter author name"
-                    value={manualBook.author}
-                    onChange={(e) => setManualBook({ ...manualBook, author: e.target.value })}
-                    className="bg-secondary/20"
-                  />
+                  <Label className="text-sm font-medium">Type</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[{ id: 'movie', label: 'Movie', icon: Film }, { id: 'tv', label: 'TV Show', icon: Tv }].map((type) => {
+                      const Icon = type.icon
+                      const isSelected = manualMedia.media_type === type.id
+                      return (
+                        <div
+                          key={type.id}
+                          onClick={() => setManualMedia({ ...manualMedia, media_type: type.id as MediaType })}
+                          className={cn(
+                            "cursor-pointer flex items-center justify-center gap-2 p-3 rounded-xl border transition-all",
+                            isSelected 
+                              ? "border-primary bg-primary/5 text-primary" 
+                              : "border-border/50 bg-secondary/20 hover:bg-secondary/40 text-muted-foreground"
+                          )}
+                        >
+                          <Icon className="h-5 w-5" />
+                          <span className="text-sm font-medium">{type.label}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cover" className="text-sm font-medium">Cover URL (Optional)</Label>
+                  <Label htmlFor="poster" className="text-sm font-medium">Poster URL (Optional)</Label>
                   <Input
-                    id="cover"
-                    placeholder="https://example.com/cover.jpg"
-                    value={manualBook.cover_url}
-                    onChange={(e) => setManualBook({ ...manualBook, cover_url: e.target.value })}
+                    id="poster"
+                    placeholder="https://example.com/poster.jpg"
+                    value={manualMedia.poster_url}
+                    onChange={(e) => setManualMedia({ ...manualMedia, poster_url: e.target.value })}
                     className="bg-secondary/20"
                   />
                 </div>
@@ -336,11 +385,11 @@ function SearchBookDialog({
                   <div className="grid grid-cols-3 gap-2">
                     {TABS.map((tab) => {
                       const Icon = tab.icon
-                      const isSelected = manualBook.status === tab.id
+                      const isSelected = manualMedia.status === tab.id
                       return (
                         <div
                           key={tab.id}
-                          onClick={() => setManualBook({ ...manualBook, status: tab.id as BookStatus })}
+                          onClick={() => setManualMedia({ ...manualMedia, status: tab.id as MediaStatus })}
                           className={cn(
                             "cursor-pointer flex flex-col items-center gap-2 p-3 rounded-xl border transition-all",
                             isSelected 
@@ -356,14 +405,14 @@ function SearchBookDialog({
                   </div>
                 </div>
 
-                {manualBook.status === 'finished' && (
+                {manualMedia.status === 'finished' && (
                   <div className="grid grid-cols-2 gap-4 pt-2 animate-in slide-in-from-top-2">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Rating</Label>
                       <div className="h-10 flex items-center px-3 rounded-md border border-input bg-secondary/20">
                         <StarRating 
-                          rating={manualBook.rating} 
-                          onChange={(r) => setManualBook({ ...manualBook, rating: r })} 
+                          rating={manualMedia.rating} 
+                          onChange={(r) => setManualMedia({ ...manualMedia, rating: r })} 
                         />
                       </div>
                     </div>
@@ -372,8 +421,8 @@ function SearchBookDialog({
                       <Input
                         id="finished_at"
                         type="date"
-                        value={manualBook.finished_at}
-                        onChange={(e) => setManualBook({ ...manualBook, finished_at: e.target.value })}
+                        value={manualMedia.finished_at}
+                        onChange={(e) => setManualMedia({ ...manualMedia, finished_at: e.target.value })}
                         className="bg-secondary/20"
                       />
                     </div>
@@ -383,7 +432,7 @@ function SearchBookDialog({
 
               <div className="pt-4">
                 <Button onClick={handleManualAdd} className="w-full h-11 text-base shadow-lg shadow-primary/20">
-                  <Plus className="mr-2 h-4 w-4" /> Add Book
+                  <Plus className="mr-2 h-4 w-4" /> Add to Library
                 </Button>
               </div>
             </div>
@@ -391,8 +440,8 @@ function SearchBookDialog({
             <>
               {results.length === 0 && query && !isSearching && (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <BookOpen className="h-12 w-12 mb-3 opacity-20" />
-                  <p className="mb-4">No books found for "{query}"</p>
+                  <Clapperboard className="h-12 w-12 mb-3 opacity-20" />
+                  <p className="mb-4">No results found for "{query}"</p>
                   <Button variant="outline" onClick={() => setManualMode(true)}>
                     Can't find it? Add manually
                   </Button>
@@ -402,7 +451,7 @@ function SearchBookDialog({
               {results.length === 0 && !query && (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Search className="h-12 w-12 mb-3 opacity-20" />
-                  <p className="mb-4">Start typing to search the Open Library...</p>
+                  <p className="mb-4">Search for movies and TV shows...</p>
                   <Button variant="ghost" size="sm" onClick={() => setManualMode(true)} className="text-xs">
                     Can't find it? Add manually
                   </Button>
@@ -411,82 +460,102 @@ function SearchBookDialog({
 
               {results.length > 0 && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
-                    {results.map((book) => (
-                      <div 
-                        key={book.open_library_key}
-                        className="flex gap-3 p-3 rounded-xl hover:bg-secondary/40 transition-colors group relative border border-transparent hover:border-border/50"
-                      >
-                        <div className="shrink-0 w-16 h-24 bg-muted rounded-md overflow-hidden shadow-xs relative">
-                          {book.cover_url ? (
-                            <img 
-                              src={book.cover_url} 
-                              alt={book.title}
-                              className="w-full h-full object-cover" 
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-secondary">
-                              <BookOpen className="h-6 w-6 text-muted-foreground/50" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-col justify-between min-w-0 flex-1">
-                          <div>
-                            <h4 className="font-medium text-sm leading-tight line-clamp-2 mb-1 text-foreground/90">
-                              {book.title}
-                            </h4>
-                            <p className="text-xs text-muted-foreground line-clamp-1">
-                              {book.author || 'Unknown Author'}
-                            </p>
-                            {book.year && (
-                              <span className="text-[10px] text-muted-foreground/60 mt-1 block">
-                                {book.year}
-                              </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {results.map((item) => {
+                      const uniqueId = `${item.media_type}-${item.tmdb_id}`
+                      return (
+                        <div 
+                          key={uniqueId}
+                          className="flex gap-3 p-3 rounded-xl hover:bg-secondary/40 transition-colors group relative border border-transparent hover:border-border/50"
+                        >
+                          <div className="shrink-0 w-16 h-24 bg-muted rounded-md overflow-hidden shadow-xs relative">
+                            {item.poster_url ? (
+                              <img 
+                                src={item.poster_url} 
+                                alt={item.title}
+                                className="w-full h-full object-cover" 
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-secondary">
+                                {item.media_type === 'movie' ? (
+                                  <Film className="h-6 w-6 text-muted-foreground/50" />
+                                ) : (
+                                  <Tv className="h-6 w-6 text-muted-foreground/50" />
+                                )}
+                              </div>
                             )}
+                            <div className="absolute top-1 left-1">
+                              <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-black/60 text-white border-0">
+                                {item.media_type === 'movie' ? 'Movie' : 'TV'}
+                              </Badge>
+                            </div>
                           </div>
-                          <div className="flex gap-1 mt-2">
-                            <Button 
-                              size="sm" 
-                              variant="secondary"
-                              className="flex-1 h-7 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                              onClick={() => handleAdd(book)}
-                              disabled={addingId === book.open_library_key}
-                            >
-                              {addingId === book.open_library_key ? (
-                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                              ) : (
-                                <Plus className="h-3 w-3 mr-1" />
+                          <div className="flex flex-col justify-between min-w-0 flex-1">
+                            <div>
+                              <h4 className="font-medium text-sm leading-tight line-clamp-2 mb-1 text-foreground/90">
+                                {item.title}
+                              </h4>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {item.release_date && (
+                                  <span>{item.release_date.split('-')[0]}</span>
+                                )}
+                                {item.vote_average && item.vote_average > 0 && (
+                                  <span className="flex items-center gap-0.5">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    {item.vote_average.toFixed(1)}
+                                  </span>
+                                )}
+                              </div>
+                              {item.genres && item.genres.length > 0 && (
+                                <p className="text-[10px] text-muted-foreground/60 mt-1 line-clamp-1">
+                                  {item.genres.slice(0, 3).join(', ')}
+                                </p>
                               )}
-                              Add
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button 
-                                  size="sm" 
-                                  variant="secondary"
-                                  className="h-7 px-2"
-                                  disabled={addingId === book.open_library_key}
-                                >
-                                  <ChevronDown className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-44">
-                                <DropdownMenuItem onClick={() => handleAdd(book, 'want_to_read')} className="cursor-pointer">
-                                  <BookMarked className="mr-2 h-4 w-4" /> Want to Read
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleAdd(book, 'reading')} className="cursor-pointer">
-                                  <BookOpen className="mr-2 h-4 w-4" /> Currently Reading
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setFinishedBook(book)} className="cursor-pointer">
-                                  <CheckCircle2 className="mr-2 h-4 w-4" /> Add as Finished...
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            </div>
+                            <div className="flex gap-1 mt-2">
+                              <Button 
+                                size="sm" 
+                                variant="secondary"
+                                className="flex-1 h-7 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+                                onClick={() => handleAdd(item)}
+                                disabled={addingId === uniqueId}
+                              >
+                                {addingId === uniqueId ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <Plus className="h-3 w-3 mr-1" />
+                                )}
+                                Add
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    size="sm" 
+                                    variant="secondary"
+                                    className="h-7 px-2"
+                                    disabled={addingId === uniqueId}
+                                  >
+                                    <ChevronDown className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem onClick={() => handleAdd(item, 'want_to_watch')} className="cursor-pointer">
+                                    <Bookmark className="mr-2 h-4 w-4" /> Want to Watch
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleAdd(item, 'watching')} className="cursor-pointer">
+                                    <PlayCircle className="mr-2 h-4 w-4" /> Currently Watching
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => setFinishedMedia(item)} className="cursor-pointer">
+                                    <CheckCircle2 className="mr-2 h-4 w-4" /> Add as Finished...
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                   <div className="flex justify-center pt-2 pb-4">
                     <Button variant="ghost" size="sm" onClick={() => setManualMode(true)} className="text-muted-foreground hover:text-foreground">
@@ -500,24 +569,31 @@ function SearchBookDialog({
         </div>
       </DialogContent>
 
-      <Dialog open={!!finishedBook} onOpenChange={(open) => !open && setFinishedBook(null)}>
+      <Dialog open={!!finishedMedia} onOpenChange={(open) => !open && setFinishedMedia(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogTitle className="text-lg font-semibold">Add as Finished</DialogTitle>
-          {finishedBook && (
+          {finishedMedia && (
             <div className="space-y-4">
               <div className="flex gap-3">
                 <div className="shrink-0 w-16 h-24 bg-muted rounded-md overflow-hidden">
-                  {finishedBook.cover_url ? (
-                    <img src={finishedBook.cover_url} alt={finishedBook.title} className="w-full h-full object-cover" />
+                  {finishedMedia.poster_url ? (
+                    <img src={finishedMedia.poster_url} alt={finishedMedia.title} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-secondary">
-                      <BookOpen className="h-6 w-6 text-muted-foreground/50" />
+                      {finishedMedia.media_type === 'movie' ? (
+                        <Film className="h-6 w-6 text-muted-foreground/50" />
+                      ) : (
+                        <Tv className="h-6 w-6 text-muted-foreground/50" />
+                      )}
                     </div>
                   )}
                 </div>
                 <div>
-                  <h4 className="font-medium">{finishedBook.title}</h4>
-                  <p className="text-sm text-muted-foreground">{finishedBook.author || 'Unknown Author'}</p>
+                  <h4 className="font-medium">{finishedMedia.title}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {finishedMedia.media_type === 'movie' ? 'Movie' : 'TV Show'}
+                    {finishedMedia.release_date && ` (${finishedMedia.release_date.split('-')[0]})`}
+                  </p>
                 </div>
               </div>
               
@@ -538,18 +614,18 @@ function SearchBookDialog({
               </div>
               
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setFinishedBook(null)}>
+                <Button variant="outline" className="flex-1" onClick={() => setFinishedMedia(null)}>
                   Cancel
                 </Button>
                 <Button 
                   className="flex-1" 
                   onClick={handleAddAsFinished}
-                  disabled={addingId === finishedBook.open_library_key}
+                  disabled={addingId === `${finishedMedia.media_type}-${finishedMedia.tmdb_id}`}
                 >
-                  {addingId === finishedBook.open_library_key ? (
+                  {addingId === `${finishedMedia.media_type}-${finishedMedia.tmdb_id}` ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : null}
-                  Add Book
+                  Add
                 </Button>
               </div>
             </div>
@@ -560,35 +636,35 @@ function SearchBookDialog({
   )
 }
 
-function BookCard({ 
-  book, 
-  updateBook, 
-  deleteBook 
+function MediaCard({ 
+  item, 
+  updateMedia, 
+  deleteMedia 
 }: { 
-  book: Book
-  updateBook: (id: string, data: Partial<Book>) => Promise<Book>
-  deleteBook: (id: string) => Promise<void>
+  item: Media
+  updateMedia: (id: string, data: Partial<Media>) => Promise<Media>
+  deleteMedia: (id: string) => Promise<void>
 }) {
   const [editOpen, setEditOpen] = useState(false)
-  const [editStarted, setEditStarted] = useState(book.started_at ? book.started_at.split('T')[0] : '')
-  const [editFinished, setEditFinished] = useState(book.finished_at ? book.finished_at.split('T')[0] : '')
+  const [editStarted, setEditStarted] = useState(item.started_at ? item.started_at.split('T')[0] : '')
+  const [editFinished, setEditFinished] = useState(item.finished_at ? item.finished_at.split('T')[0] : '')
 
-  const handleStatusChange = async (newStatus: BookStatus) => {
+  const handleStatusChange = async (newStatus: MediaStatus) => {
     try {
-      const updates: Partial<Book> = { status: newStatus }
+      const updates: Partial<Media> = { status: newStatus }
       
-      if (newStatus === 'reading' && !book.started_at) {
+      if (newStatus === 'watching' && !item.started_at) {
         updates.started_at = new Date().toISOString()
       }
       
-      if (newStatus === 'finished' && !book.finished_at) {
+      if (newStatus === 'finished' && !item.finished_at) {
         updates.finished_at = new Date().toISOString()
-        if (!book.started_at) {
+        if (!item.started_at) {
           updates.started_at = new Date().toISOString()
         }
       }
       
-      await updateBook(book.id, updates)
+      await updateMedia(item.id, updates)
       toast.success('Status updated')
     } catch (error) {
       toast.error('Failed to update status')
@@ -597,7 +673,7 @@ function BookCard({
 
   const handleRatingChange = async (rating: number) => {
     try {
-      await updateBook(book.id, { rating })
+      await updateMedia(item.id, { rating })
       toast.success('Rating updated')
     } catch (error) {
       toast.error('Failed to update rating')
@@ -606,13 +682,13 @@ function BookCard({
 
   const handleSaveDates = async () => {
     try {
-      const updates: Partial<Book> = {}
+      const updates: Partial<Media> = {}
       if (editStarted) updates.started_at = new Date(editStarted).toISOString()
       else updates.started_at = null
       if (editFinished) updates.finished_at = new Date(editFinished).toISOString()
       else updates.finished_at = null
       
-      await updateBook(book.id, updates)
+      await updateMedia(item.id, updates)
       toast.success('Dates updated')
       setEditOpen(false)
     } catch (error) {
@@ -621,44 +697,54 @@ function BookCard({
   }
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this book?')) return
+    if (!confirm('Are you sure you want to remove this from your library?')) return
     try {
-      await deleteBook(book.id)
-      toast.success('Book deleted')
+      await deleteMedia(item.id)
+      toast.success('Removed from library')
     } catch (error) {
-      toast.error('Failed to delete book')
+      toast.error('Failed to delete')
     }
   }
 
   return (
     <Card className="group relative overflow-hidden border-0 bg-transparent hover:bg-secondary/20 transition-all duration-300">
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-secondary shadow-xs group-hover:shadow-md transition-all cursor-pointer">
-        {book.cover_url ? (
+        {item.poster_url ? (
           <img
-            src={book.cover_url}
-            alt={book.title}
+            src={item.poster_url}
+            alt={item.title}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">
-            <BookOpen className="h-12 w-12 opacity-20" />
+            {item.media_type === 'movie' ? (
+              <Film className="h-12 w-12 opacity-20" />
+            ) : (
+              <Tv className="h-12 w-12 opacity-20" />
+            )}
           </div>
         )}
+        
+        <div className="absolute top-2 left-2">
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0">
+            {item.media_type === 'movie' ? 'Movie' : 'TV'}
+          </Badge>
+        </div>
         
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 p-4 backdrop-blur-[2px]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-md">
-                {book.status === 'want_to_read' ? 'Want to Read' : 
-                 book.status === 'reading' ? 'Reading' : 'Finished'}
+                {item.status === 'want_to_watch' ? 'Want to Watch' : 
+                 item.status === 'watching' ? 'Watching' : 'Finished'}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="w-40">
-              <DropdownMenuItem onClick={() => handleStatusChange('want_to_read')} className="cursor-pointer">
-                <BookMarked className="mr-2 h-4 w-4" /> Want to Read
+              <DropdownMenuItem onClick={() => handleStatusChange('want_to_watch')} className="cursor-pointer">
+                <Bookmark className="mr-2 h-4 w-4" /> Want to Watch
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange('reading')} className="cursor-pointer">
-                <BookOpen className="mr-2 h-4 w-4" /> Reading
+              <DropdownMenuItem onClick={() => handleStatusChange('watching')} className="cursor-pointer">
+                <PlayCircle className="mr-2 h-4 w-4" /> Watching
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleStatusChange('finished')} className="cursor-pointer">
                 <CheckCircle2 className="mr-2 h-4 w-4" /> Finished
@@ -681,7 +767,7 @@ function BookCard({
                 <div className="space-y-4">
                   <h4 className="font-medium text-sm">Edit Dates</h4>
                   <div className="space-y-2">
-                    <Label htmlFor="started" className="text-xs">Started Reading</Label>
+                    <Label htmlFor="started" className="text-xs">Started Watching</Label>
                     <Input
                       id="started"
                       type="date"
@@ -691,7 +777,7 @@ function BookCard({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="finished" className="text-xs">Finished Reading</Label>
+                    <Label htmlFor="finished" className="text-xs">Finished Watching</Label>
                     <Input
                       id="finished"
                       type="date"
@@ -719,7 +805,7 @@ function BookCard({
         </div>
 
         <div className="absolute top-2 right-2 opacity-100 group-hover:opacity-0 transition-opacity">
-          {book.status === 'reading' && (
+          {item.status === 'watching' && (
             <span className="flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
@@ -729,38 +815,38 @@ function BookCard({
       </div>
 
       <div className="mt-3 space-y-1 px-1">
-        <h3 className="font-semibold leading-tight tracking-tight text-foreground/90 line-clamp-1" title={book.title}>
-          {book.title}
+        <h3 className="font-semibold leading-tight tracking-tight text-foreground/90 line-clamp-1" title={item.title}>
+          {item.title}
         </h3>
         <p className="text-sm text-muted-foreground line-clamp-1">
-          {book.author || 'Unknown'}
+          {item.release_date ? item.release_date.split('-')[0] : 'Unknown year'}
         </p>
         
-        {book.status === 'reading' && book.started_at && (
+        {item.status === 'watching' && item.started_at && (
           <p className="text-xs text-muted-foreground/70 pt-1">
-            Started {formatDate(book.started_at)}
+            Started {formatDate(item.started_at)}
           </p>
         )}
         
-        {book.status === 'finished' && (
+        {item.status === 'finished' && (
           <div className="pt-1 space-y-1">
-            <StarRating rating={book.rating} onChange={handleRatingChange} />
+            <StarRating rating={item.rating} onChange={handleRatingChange} />
             <Popover>
               <PopoverTrigger asChild>
                 <button className="text-xs text-muted-foreground/70 hover:text-foreground cursor-pointer flex items-center gap-1 transition-colors">
                   <Calendar className="h-3 w-3" />
-                  {book.finished_at ? formatDate(book.finished_at) : 'Add finish date'}
+                  {item.finished_at ? formatDate(item.finished_at) : 'Add finish date'}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-3" align="start">
                 <div className="space-y-2">
-                  <Label className="text-xs">Finished Reading</Label>
+                  <Label className="text-xs">Finished Watching</Label>
                   <Input
                     type="date"
-                    defaultValue={book.finished_at ? book.finished_at.split('T')[0] : ''}
+                    defaultValue={item.finished_at ? item.finished_at.split('T')[0] : ''}
                     onChange={async (e) => {
                       try {
-                        await updateBook(book.id, { 
+                        await updateMedia(item.id, { 
                           finished_at: e.target.value ? new Date(e.target.value).toISOString() : null 
                         })
                         toast.success('Date updated')
@@ -780,28 +866,28 @@ function BookCard({
   )
 }
 
-function ReadingStats({ books }: { books: Book[] }) {
+function WatchingStats({ media }: { media: Media[] }) {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const startOfYear = new Date(now.getFullYear(), 0, 1)
   
-  const finishedBooks = books.filter(b => b.status === 'finished')
-  const currentlyReading = books.filter(b => b.status === 'reading').length
+  const finishedMedia = media.filter(m => m.status === 'finished')
+  const currentlyWatching = media.filter(m => m.status === 'watching').length
   
-  const finishedThisMonth = finishedBooks.filter(b => 
-    b.finished_at && new Date(b.finished_at) >= startOfMonth
+  const finishedThisMonth = finishedMedia.filter(m => 
+    m.finished_at && new Date(m.finished_at) >= startOfMonth
   ).length
   
-  const finishedThisYear = finishedBooks.filter(b => 
-    b.finished_at && new Date(b.finished_at) >= startOfYear
+  const finishedThisYear = finishedMedia.filter(m => 
+    m.finished_at && new Date(m.finished_at) >= startOfYear
   ).length
   
-  const ratedBooks = finishedBooks.filter(b => b.rating)
-  const avgRating = ratedBooks.length > 0 
-    ? (ratedBooks.reduce((sum, b) => sum + (b.rating || 0), 0) / ratedBooks.length).toFixed(1)
+  const ratedMedia = finishedMedia.filter(m => m.rating)
+  const avgRating = ratedMedia.length > 0 
+    ? (ratedMedia.reduce((sum, m) => sum + (m.rating || 0), 0) / ratedMedia.length).toFixed(1)
     : null
 
-  if (books.length === 0) return null
+  if (media.length === 0) return null
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -811,7 +897,7 @@ function ReadingStats({ books }: { books: Book[] }) {
           <span className="text-xs font-medium">This Month</span>
         </div>
         <p className="text-2xl font-bold">{finishedThisMonth}</p>
-        <p className="text-xs text-muted-foreground">books finished</p>
+        <p className="text-xs text-muted-foreground">titles finished</p>
       </div>
       
       <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50">
@@ -820,15 +906,15 @@ function ReadingStats({ books }: { books: Book[] }) {
           <span className="text-xs font-medium">This Year</span>
         </div>
         <p className="text-2xl font-bold">{finishedThisYear}</p>
-        <p className="text-xs text-muted-foreground">books finished</p>
+        <p className="text-xs text-muted-foreground">titles finished</p>
       </div>
       
       <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
-          <BookOpen className="h-3.5 w-3.5" />
-          <span className="text-xs font-medium">Reading</span>
+          <PlayCircle className="h-3.5 w-3.5" />
+          <span className="text-xs font-medium">Watching</span>
         </div>
-        <p className="text-2xl font-bold">{currentlyReading}</p>
+        <p className="text-2xl font-bold">{currentlyWatching}</p>
         <p className="text-xs text-muted-foreground">in progress</p>
       </div>
       
@@ -837,8 +923,8 @@ function ReadingStats({ books }: { books: Book[] }) {
           <Star className="h-3.5 w-3.5" />
           <span className="text-xs font-medium">Avg Rating</span>
         </div>
-        <p className="text-2xl font-bold">{avgRating || '—'}</p>
-        <p className="text-xs text-muted-foreground">{ratedBooks.length} rated</p>
+        <p className="text-2xl font-bold">{avgRating || '-'}</p>
+        <p className="text-xs text-muted-foreground">{ratedMedia.length} rated</p>
       </div>
     </div>
   )
@@ -856,9 +942,10 @@ function formatDate(dateString: string | null): string {
 type SortOption = 'newest' | 'oldest' | 'rating_high' | 'rating_low' | 'title'
 type RatingFilter = 'all' | '5' | '4+' | '3+' | 'unrated'
 
-export default function BooksPage() {
-  const { books, loading, searchBooks, addBook, updateBook, deleteBook } = useBooks()
-  const [activeTab, setActiveTab] = useState<BookStatus>('want_to_read')
+export default function MediaPage() {
+  const { media, loading, searchMedia, addMedia, updateMedia, deleteMedia } = useMedia()
+  const [activeTab, setActiveTab] = useState<MediaStatus>('want_to_watch')
+  const [typeFilter, setTypeFilter] = useState<'all' | MediaType>('all')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all')
@@ -866,32 +953,35 @@ export default function BooksPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
-  const getBooksByStatus = (status: BookStatus) => {
-    let filtered = books.filter(b => b.status === status)
+  const getMediaByStatus = (status: MediaStatus) => {
+    let filtered = media.filter(m => m.status === status)
+    
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(m => m.media_type === typeFilter)
+    }
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(b => 
-        b.title.toLowerCase().includes(query) || 
-        (b.author && b.author.toLowerCase().includes(query))
+      filtered = filtered.filter(m => 
+        m.title.toLowerCase().includes(query)
       )
     }
 
     if (status === 'finished') {
       if (ratingFilter !== 'all') {
-        filtered = filtered.filter(b => {
-          if (ratingFilter === 'unrated') return !b.rating
-          if (ratingFilter === '5') return b.rating === 5
-          if (ratingFilter === '4+') return (b.rating || 0) >= 4
-          if (ratingFilter === '3+') return (b.rating || 0) >= 3
+        filtered = filtered.filter(m => {
+          if (ratingFilter === 'unrated') return !m.rating
+          if (ratingFilter === '5') return m.rating === 5
+          if (ratingFilter === '4+') return (m.rating || 0) >= 4
+          if (ratingFilter === '3+') return (m.rating || 0) >= 3
           return true
         })
       }
 
       if (dateFrom || dateTo) {
-        filtered = filtered.filter(b => {
-          if (!b.finished_at) return false
-          const finishedDate = new Date(b.finished_at)
+        filtered = filtered.filter(m => {
+          if (!m.finished_at) return false
+          const finishedDate = new Date(m.finished_at)
           
           if (dateFrom) {
             const fromDate = new Date(dateFrom)
@@ -933,7 +1023,7 @@ export default function BooksPage() {
     return filtered
   }
   
-  const activeBooks = getBooksByStatus(activeTab)
+  const activeMedia = getMediaByStatus(activeTab)
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -941,8 +1031,8 @@ export default function BooksPage() {
         <div className="container mx-auto max-w-7xl px-4 md:px-6">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <Library className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold tracking-tight">My Library</h1>
+              <Clapperboard className="h-6 w-6 text-primary" />
+              <h1 className="text-xl font-bold tracking-tight">Movies & TV</h1>
             </div>
             
             <Button 
@@ -950,7 +1040,7 @@ export default function BooksPage() {
               className="gap-2 rounded-full px-4 shadow-sm hover:shadow-md transition-all"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Book</span>
+              <span className="hidden sm:inline">Add Title</span>
               <span className="inline sm:hidden">Add</span>
             </Button>
           </div>
@@ -959,13 +1049,13 @@ export default function BooksPage() {
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
               {TABS.map((tab) => {
                 const Icon = tab.icon
-                const count = books.filter(b => b.status === tab.id).length
+                const count = media.filter(m => m.status === tab.id && (typeFilter === 'all' || m.media_type === typeFilter)).length
                 const isActive = activeTab === tab.id
                 
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as BookStatus)}
+                    onClick={() => setActiveTab(tab.id as MediaStatus)}
                     className={cn(
                       "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 outline-hidden whitespace-nowrap cursor-pointer",
                       isActive 
@@ -993,7 +1083,7 @@ export default function BooksPage() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search books..."
+                  placeholder="Search library..."
                   className="h-8 w-full pl-8 pr-8 text-xs bg-background/50 focus:bg-background transition-colors"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -1008,7 +1098,7 @@ export default function BooksPage() {
                 )}
               </div>
               <div className="relative sm:hidden w-[120px] mr-1">
-                 <Input
+                <Input
                   type="text"
                   placeholder="Search..."
                   className="h-8 w-full px-2 text-xs bg-background/50 focus:bg-background transition-colors"
@@ -1016,6 +1106,26 @@ export default function BooksPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className={cn("h-8 gap-1 text-xs", typeFilter !== 'all' && "text-primary")}>
+                    {typeFilter === 'movie' ? <Film className="h-3.5 w-3.5" /> : typeFilter === 'tv' ? <Tv className="h-3.5 w-3.5" /> : <Clapperboard className="h-3.5 w-3.5" />}
+                    <span className="hidden sm:inline">Type</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-32">
+                  <DropdownMenuItem onClick={() => setTypeFilter('all')} className={cn("cursor-pointer", typeFilter === 'all' && "bg-secondary")}>
+                    All
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTypeFilter('movie')} className={cn("cursor-pointer", typeFilter === 'movie' && "bg-secondary")}>
+                    <Film className="mr-2 h-4 w-4" /> Movies
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTypeFilter('tv')} className={cn("cursor-pointer", typeFilter === 'tv' && "bg-secondary")}>
+                    <Tv className="mr-2 h-4 w-4" /> TV Shows
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1057,7 +1167,7 @@ export default function BooksPage() {
                       <div className="space-y-4">
                         <div className="space-y-1">
                           <h4 className="font-medium text-sm">Filter by Date</h4>
-                          <p className="text-xs text-muted-foreground">Show books finished within range</p>
+                          <p className="text-xs text-muted-foreground">Show titles finished within range</p>
                         </div>
                         <div className="grid gap-4">
                           <div className="grid grid-cols-4 items-center gap-2">
@@ -1133,7 +1243,7 @@ export default function BooksPage() {
       </div>
 
       <div className="container mx-auto max-w-7xl px-4 py-8 md:px-6">
-        <ReadingStats books={books} />
+        <WatchingStats media={media} />
         
         {loading ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -1145,40 +1255,40 @@ export default function BooksPage() {
               </div>
             ))}
           </div>
-        ) : activeBooks.length > 0 ? (
+        ) : activeMedia.length > 0 ? (
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {activeBooks.map((book) => (
-              <BookCard key={book.id} book={book} updateBook={updateBook} deleteBook={deleteBook} />
+            {activeMedia.map((item) => (
+              <MediaCard key={item.id} item={item} updateMedia={updateMedia} deleteMedia={deleteMedia} />
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="mb-6 rounded-full bg-secondary/50 p-6 ring-1 ring-border/50">
-              <BookOpen className="h-12 w-12 text-muted-foreground/40" />
+              <Clapperboard className="h-12 w-12 text-muted-foreground/40" />
             </div>
             <h3 className="mb-2 text-xl font-semibold text-foreground">
-              {activeTab === 'want_to_read' && "Your reading list is empty"}
-              {activeTab === 'reading' && "You're not reading anything right now"}
-              {activeTab === 'finished' && "You haven't finished any books yet"}
+              {activeTab === 'want_to_watch' && "Your watchlist is empty"}
+              {activeTab === 'watching' && "You're not watching anything right now"}
+              {activeTab === 'finished' && "You haven't finished anything yet"}
             </h3>
             <p className="mb-6 max-w-md text-muted-foreground">
-              {activeTab === 'want_to_read' && "Search for books you want to read and add them to your collection to keep track of them."}
-              {activeTab === 'reading' && "When you start reading a book, move it here to track your progress."}
-              {activeTab === 'finished' && "Finished books will appear here. You can rate them and keep a history of what you've read."}
+              {activeTab === 'want_to_watch' && "Search for movies and TV shows you want to watch and add them to your collection."}
+              {activeTab === 'watching' && "When you start watching something, move it here to track your progress."}
+              {activeTab === 'finished' && "Finished titles will appear here. You can rate them and keep a history of what you've watched."}
             </p>
             <Button onClick={() => setIsSearchOpen(true)} className="gap-2">
               <Search className="h-4 w-4" />
-              Find Books
+              Find Movies & TV Shows
             </Button>
           </div>
         )}
       </div>
 
-      <SearchBookDialog 
+      <SearchMediaDialog 
         open={isSearchOpen} 
         onOpenChange={setIsSearchOpen}
-        searchBooks={searchBooks}
-        addBook={addBook}
+        searchMedia={searchMedia}
+        addMedia={addMedia}
       />
     </div>
   )

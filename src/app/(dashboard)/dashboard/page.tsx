@@ -27,9 +27,9 @@ const MOOD_EMOJIS: Record<number, string> = {
 
 const getGreeting = () => {
   const hour = new Date().getHours()
-  if (hour < 12) return { text: "Good morning", icon: Sun }
-  if (hour < 18) return { text: "Good afternoon", icon: Sun }
-  return { text: "Good evening", icon: Moon }
+  if (hour < 12) return { text: "Good morning", subtitle: "Ready to have a wonderful day?", icon: Sun }
+  if (hour < 18) return { text: "Good afternoon", subtitle: "How's your day going so far?", icon: Sun }
+  return { text: "Good evening", subtitle: "Time to wind down and reflect.", icon: Moon }
 }
 
 export default function DashboardPage() {
@@ -78,7 +78,7 @@ export default function DashboardPage() {
             {greeting.text}! <GreetingIcon className="h-8 w-8 text-yellow-500 animate-spin-slow" />
           </h2>
           <p className="text-muted-foreground text-lg mt-2 flex items-center gap-2">
-            Ready to have a wonderful day?
+            {greeting.subtitle}
           </p>
         </div>
       </div>

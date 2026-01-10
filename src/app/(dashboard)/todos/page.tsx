@@ -203,13 +203,13 @@ export default function TodosPage() {
                 </Button>
               </div>
               
-              <CardContent className="flex-1 p-0">
+              <CardContent className="flex-1 p-0 overflow-hidden">
                 {quadrantTodos.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center p-8 text-center text-muted-foreground/50">
                     <p className="text-sm">No tasks yet</p>
                   </div>
                 ) : (
-                  <ul className="divide-y divide-border/50">
+                  <ul className="divide-y divide-border/50 max-h-[400px] overflow-y-auto">
                     {quadrantTodos.map((todo) => (
                       <li 
                         key={todo.id} 

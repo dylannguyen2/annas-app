@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import { SidebarProvider, MainContent } from '@/components/layout/layout-client'
+import { CommandPalette } from '@/components/command-palette'
 
 export default async function DashboardLayout({
   children,
@@ -28,6 +29,7 @@ export default async function DashboardLayout({
           </main>
         </MainContent>
         <MobileNav />
+        <CommandPalette />
       </div>
     </SidebarProvider>
   )
