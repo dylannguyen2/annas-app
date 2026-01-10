@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useMoods } from '@/hooks/use-moods'
 import { MoodPicker } from '@/components/dashboard/mood-picker'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,12 +16,18 @@ const MOOD_EMOJIS: Record<number, string> = {
 }
 
 export default function MoodPage() {
-  const { moods, loading, saveMood, getTodayMood } = useMoods()
-  const todayMood = getTodayMood()
-  const today = formatDate(new Date())
+  const { moods, loading, saveMood, getMoodForDate } = useMoods()
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  
+  const selectedDateStr = formatDate(selectedDate)
+  const moodForSelectedDate = getMoodForDate(selectedDateStr)
 
-  const handleSaveMood = async (data: { mood: number; energy: number; stress: number; notes?: string }) => {
-    await saveMood({ date: today, ...data })
+  const handleSaveMood = async (data: { mood: number; energy: number; stress: number; notes?: string; date: Date }) => {
+    await saveMood({ date: formatDate(data.date), mood: data.mood, energy: data.energy, stress: data.stress, notes: data.notes })
+  }
+  
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date)
   }
 
   if (loading) {
@@ -42,10 +49,13 @@ export default function MoodPage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <MoodPicker
-          initialMood={todayMood?.mood ?? undefined}
-          initialEnergy={todayMood?.energy ?? 3}
-          initialStress={todayMood?.stress ?? 3}
-          initialNotes={todayMood?.notes ?? ''}
+          key={selectedDateStr}
+          initialMood={moodForSelectedDate?.mood ?? undefined}
+          initialEnergy={moodForSelectedDate?.energy ?? 3}
+          initialStress={moodForSelectedDate?.stress ?? 3}
+          initialNotes={moodForSelectedDate?.notes ?? ''}
+          date={selectedDate}
+          onDateChange={handleDateChange}
           onSave={handleSaveMood}
         />
 

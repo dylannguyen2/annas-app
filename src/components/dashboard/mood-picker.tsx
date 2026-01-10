@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: '😢', label: 'Awful', color: '#ef4444' },
@@ -21,8 +25,11 @@ interface MoodPickerProps {
   initialEnergy?: number
   initialStress?: number
   initialNotes?: string
-  onSave: (data: { mood: number; energy: number; stress: number; notes?: string }) => Promise<void>
+  date?: Date
+  onDateChange?: (date: Date) => void
+  onSave: (data: { mood: number; energy: number; stress: number; notes?: string; date: Date }) => Promise<void>
   compact?: boolean
+  showDatePicker?: boolean
 }
 
 export function MoodPicker({ 
@@ -30,8 +37,11 @@ export function MoodPicker({
   initialEnergy = 3, 
   initialStress = 3,
   initialNotes = '',
+  date: externalDate,
+  onDateChange,
   onSave,
-  compact = false 
+  compact = false,
+  showDatePicker = true
 }: MoodPickerProps) {
   const [mood, setMood] = useState<number | undefined>(initialMood)
   const [energy, setEnergy] = useState(initialEnergy)
@@ -39,12 +49,28 @@ export function MoodPicker({
   const [notes, setNotes] = useState(initialNotes)
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [internalDate, setInternalDate] = useState<Date>(new Date())
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  
+  const selectedDate = externalDate ?? internalDate
+  const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+  
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      if (onDateChange) {
+        onDateChange(date)
+      } else {
+        setInternalDate(date)
+      }
+      setCalendarOpen(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!mood) return
     setLoading(true)
     try {
-      await onSave({ mood, energy, stress, notes: notes || undefined })
+      await onSave({ mood, energy, stress, notes: notes || undefined, date: selectedDate })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } finally {
@@ -60,7 +86,7 @@ export function MoodPicker({
             key={option.value}
             onClick={() => {
               setMood(option.value)
-              onSave({ mood: option.value, energy: 3, stress: 3 })
+              onSave({ mood: option.value, energy: 3, stress: 3, date: selectedDate })
             }}
             className={cn(
               'flex flex-col items-center p-2 rounded-lg transition-all flex-1',
@@ -79,7 +105,28 @@ export function MoodPicker({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>How are you feeling?</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>How are you feeling?</CardTitle>
+          {showDatePicker && (
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {isToday ? 'Today' : format(selectedDate, 'MMM d')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex justify-center gap-3">
