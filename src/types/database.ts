@@ -301,6 +301,56 @@ export interface Database {
           created_at?: string
         }
       }
+      books: {
+        Row: {
+          id: string
+          user_id: string
+          open_library_key: string | null
+          title: string
+          author: string | null
+          cover_url: string | null
+          isbn: string | null
+          page_count: number | null
+          status: 'want_to_read' | 'reading' | 'finished'
+          rating: number | null
+          notes: string | null
+          started_at: string | null
+          finished_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          open_library_key?: string | null
+          title: string
+          author?: string | null
+          cover_url?: string | null
+          isbn?: string | null
+          page_count?: number | null
+          status?: 'want_to_read' | 'reading' | 'finished'
+          rating?: number | null
+          notes?: string | null
+          started_at?: string | null
+          finished_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          open_library_key?: string | null
+          title?: string
+          author?: string | null
+          cover_url?: string | null
+          isbn?: string | null
+          page_count?: number | null
+          status?: 'want_to_read' | 'reading' | 'finished'
+          rating?: number | null
+          notes?: string | null
+          started_at?: string | null
+          finished_at?: string | null
+          created_at?: string
+        }
+      }
       activities: {
         Row: {
           id: string
@@ -434,3 +484,4 @@ export type DailyEntry = Tables<'daily_entries'>
 export type GarminCredentials = Tables<'garmin_credentials'>
 export type Meal = Tables<'meals'>
 export type Activity = Tables<'activities'>
+export type Book = Tables<'books'>

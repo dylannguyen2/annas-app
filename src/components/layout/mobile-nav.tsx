@@ -14,10 +14,10 @@ import {
   Menu,
   X,
   Dumbbell,
-  Activity,
   Heart,
   Calendar,
   UtensilsCrossed,
+  BookOpen,
 } from 'lucide-react'
 
 const mainNav = [
@@ -29,8 +29,8 @@ const mainNav = [
 
 const moreNav = [
   { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
+  { name: 'Books', href: '/books', icon: BookOpen },
   { name: 'Workouts', href: '/workouts', icon: Dumbbell },
-  { name: 'Activities', href: '/activities', icon: Activity },
   { name: 'Cycle', href: '/cycle', icon: Droplet },
   { name: 'Insights', href: '/insights', icon: Lightbulb },
   { name: 'History', href: '/history', icon: Calendar },

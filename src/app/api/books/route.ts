@@ -10,20 +10,25 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const limit = parseInt(searchParams.get('limit') || '50')
+  const status = searchParams.get('status')
 
-  const { data: workouts, error } = await supabase
-    .from('workout_notes')
+  let query = supabase
+    .from('books')
     .select('*')
     .eq('user_id', user.id)
-    .order('date', { ascending: false })
-    .limit(limit)
+    .order('created_at', { ascending: false })
+
+  if (status) {
+    query = query.eq('status', status)
+  }
+
+  const { data: books, error } = await query
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(workouts)
+  return NextResponse.json(books)
 }
 
 export async function POST(request: Request) {
@@ -35,22 +40,26 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { date, workout_type, duration_minutes, calories, notes, intensity } = body
+  const { title, author, cover_url, isbn, page_count, open_library_key, status, rating, started_at, finished_at } = body
 
-  if (!date || !workout_type) {
-    return NextResponse.json({ error: 'Date and workout type are required' }, { status: 400 })
+  if (!title) {
+    return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   }
 
-  const { data: workout, error } = await supabase
-    .from('workout_notes')
+  const { data: newBook, error } = await supabase
+    .from('books')
     .insert({
       user_id: user.id,
-      date,
-      workout_type,
-      duration_minutes,
-      calories,
-      notes,
-      intensity,
+      title,
+      author,
+      cover_url,
+      isbn,
+      page_count,
+      open_library_key,
+      status: status || 'want_to_read',
+      rating,
+      started_at,
+      finished_at,
     })
     .select()
     .single()
@@ -59,5 +68,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(workout)
+  return NextResponse.json(newBook)
 }

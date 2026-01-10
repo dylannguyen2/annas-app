@@ -1,7 +1,22 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
+import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  startOfWeek, 
+  endOfWeek,
+  addMonths,
+  subMonths,
+  isSameMonth,
+  isToday,
+  isFuture
+} from 'date-fns'
 
 interface HabitCompletion {
   date: string
@@ -14,7 +29,6 @@ interface HabitHeatmapProps {
   year?: number
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAYS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 
 function getIntensityColor(completed: number, total: number): string {
@@ -27,7 +41,107 @@ function getIntensityColor(completed: number, total: number): string {
   return 'bg-primary'
 }
 
-export function HabitHeatmap({ data, year = new Date().getFullYear() }: HabitHeatmapProps) {
+function getIntensityLabel(completed: number, total: number): string {
+  if (total === 0) return ''
+  const ratio = completed / total
+  if (ratio === 0) return ''
+  if (ratio <= 0.25) return '25%'
+  if (ratio <= 0.5) return '50%'
+  if (ratio <= 0.75) return '75%'
+  return '100%'
+}
+
+function MonthView({ data }: { data: HabitCompletion[] }) {
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  
+  const completionMap = useMemo(() => {
+    const map = new Map<string, { completed: number; total: number }>()
+    data.forEach(d => map.set(d.date, { completed: d.completed, total: d.total }))
+    return map
+  }, [data])
+  
+  const monthStart = startOfMonth(currentMonth)
+  const monthEnd = endOfMonth(currentMonth)
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+  
+  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+  
+  return (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-medium">
+          {format(currentMonth, 'MMMM yyyy')}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          disabled={isSameMonth(currentMonth, new Date())}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+          <div key={i} className="text-center text-[10px] text-muted-foreground font-medium py-1">
+            {day}
+          </div>
+        ))}
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day) => {
+          const dateStr = format(day, 'yyyy-MM-dd')
+          const dayData = completionMap.get(dateStr)
+          const isCurrentMonth = isSameMonth(day, currentMonth)
+          const isTodayDate = isToday(day)
+          const isFutureDay = isFuture(day)
+          
+          if (!isCurrentMonth) {
+            return <div key={dateStr} className="aspect-square" />
+          }
+          
+          const completed = dayData?.completed || 0
+          const total = dayData?.total || 0
+          
+          return (
+            <div
+              key={dateStr}
+              className={`
+                aspect-square rounded-lg flex items-center justify-center text-sm transition-all
+                ${getIntensityColor(completed, total)}
+                ${isTodayDate ? 'ring-2 ring-primary' : ''}
+                ${isFutureDay ? 'opacity-30' : ''}
+              `}
+              title={`${format(day, 'MMM d')}${total > 0 ? ` - ${completed}/${total} habits` : ''}`}
+            >
+              {total > 0 && completed > 0 ? (
+                <span className="text-[10px] font-medium text-primary-foreground">
+                  {getIntensityLabel(completed, total)}
+                </span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">{format(day, 'd')}</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+function YearView({ data, year }: { data: HabitCompletion[], year: number }) {
   const completionMap = useMemo(() => {
     const map = new Map<string, { completed: number; total: number }>()
     data.forEach(d => map.set(d.date, { completed: d.completed, total: d.total }))
@@ -76,6 +190,7 @@ export function HabitHeatmap({ data, year = new Date().getFullYear() }: HabitHea
   const monthLabels = useMemo(() => {
     const labels: { month: string; weekIndex: number }[] = []
     let lastMonth = -1
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     
     weeks.forEach((week, weekIndex) => {
       const firstDayOfWeek = week.find(d => d.date.getFullYear() === year)
@@ -93,84 +208,98 @@ export function HabitHeatmap({ data, year = new Date().getFullYear() }: HabitHea
 
   return (
     <TooltipProvider>
-      <div className="overflow-x-auto">
-        <div className="inline-block min-w-fit">
-          <div className="flex gap-1 mb-1 ml-8 text-xs text-muted-foreground">
-            {monthLabels.map((label, i) => (
-              <div 
-                key={i} 
-                style={{ 
-                  marginLeft: i === 0 ? `${label.weekIndex * 13}px` : `${(label.weekIndex - (monthLabels[i - 1]?.weekIndex || 0) - 1) * 13}px` 
-                }}
-              >
-                {label.month}
-              </div>
+      <div className="w-full">
+        <div className="flex mb-1">
+          <div className="w-8 shrink-0" />
+          <div className="flex-1 flex gap-[2px]">
+            {weeks.map((_, weekIndex) => {
+              const label = monthLabels.find(m => m.weekIndex === weekIndex)
+              return (
+                <div key={weekIndex} className="flex-1 min-w-0">
+                  {label && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {label.month}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        
+        <div className="flex">
+          <div className="flex flex-col gap-[2px] w-8 shrink-0 text-[10px] text-muted-foreground">
+            {DAYS.map((day, i) => (
+              <div key={i} className="flex-1 flex items-center">{day}</div>
             ))}
           </div>
           
-          <div className="flex">
-            <div className="flex flex-col gap-[2px] mr-1 text-xs text-muted-foreground">
-              {DAYS.map((day, i) => (
-                <div key={i} className="h-[11px] flex items-center">{day}</div>
-              ))}
-            </div>
-            
-            <div className="flex gap-[2px]">
-              {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-[2px]">
-                  {week.map((day, dayIndex) => {
-                    const isInYear = day.date.getFullYear() === year
-                    
-                    return (
-                      <Tooltip key={dayIndex}>
-                        <TooltipTrigger asChild>
-                          <div
-                            className={`w-[11px] h-[11px] rounded-sm ${
-                              !isInYear 
-                                ? 'bg-transparent' 
-                                : getIntensityColor(day.completed, day.total)
-                            }`}
-                          />
-                        </TooltipTrigger>
-                        {isInYear && (
-                          <TooltipContent>
-                            <p className="font-medium">
-                              {day.date.toLocaleDateString('en-AU', { 
-                                weekday: 'short', 
-                                year: 'numeric', 
-                                month: 'short', 
-                                day: 'numeric' 
-                              })}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {day.total > 0 
-                                ? `${day.completed}/${day.total} habits completed`
-                                : 'No habits tracked'
-                              }
-                            </p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
+          <div className="flex-1 flex gap-[2px]">
+            {weeks.map((week, weekIndex) => (
+              <div key={weekIndex} className="flex-1 flex flex-col gap-[2px]">
+                {week.map((day, dayIndex) => {
+                  const isInYear = day.date.getFullYear() === year
+                  
+                  return (
+                    <Tooltip key={dayIndex}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`flex-1 aspect-square rounded-sm ${
+                            !isInYear 
+                              ? 'bg-transparent' 
+                              : getIntensityColor(day.completed, day.total)
+                          }`}
+                        />
+                      </TooltipTrigger>
+                      {isInYear && (
+                        <TooltipContent>
+                          <p className="font-medium">
+                            {day.date.toLocaleDateString('en-AU', { 
+                              weekday: 'short', 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {day.total > 0 
+                              ? `${day.completed}/${day.total} habits completed`
+                              : 'No habits tracked'
+                            }
+                          </p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            ))}
           </div>
-          
-          <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
-            <span>Less</span>
-            <div className="flex gap-[2px]">
-              <div className="w-[11px] h-[11px] rounded-sm bg-muted" />
-              <div className="w-[11px] h-[11px] rounded-sm bg-primary/25" />
-              <div className="w-[11px] h-[11px] rounded-sm bg-primary/50" />
-              <div className="w-[11px] h-[11px] rounded-sm bg-primary/75" />
-              <div className="w-[11px] h-[11px] rounded-sm bg-primary" />
-            </div>
-            <span>More</span>
-          </div>
+        </div>
+        
+        <div className="flex items-center justify-end gap-1 mt-3 text-[10px] text-muted-foreground">
+          <span>Less</span>
+          <div className="w-3 h-3 rounded-sm bg-muted" />
+          <div className="w-3 h-3 rounded-sm bg-primary/25" />
+          <div className="w-3 h-3 rounded-sm bg-primary/50" />
+          <div className="w-3 h-3 rounded-sm bg-primary/75" />
+          <div className="w-3 h-3 rounded-sm bg-primary" />
+          <span>More</span>
         </div>
       </div>
     </TooltipProvider>
+  )
+}
+
+export function HabitHeatmap({ data, year = new Date().getFullYear() }: HabitHeatmapProps) {
+  return (
+    <>
+      <div className="md:hidden">
+        <MonthView data={data} />
+      </div>
+      <div className="hidden md:block">
+        <YearView data={data} year={year} />
+      </div>
+    </>
   )
 }

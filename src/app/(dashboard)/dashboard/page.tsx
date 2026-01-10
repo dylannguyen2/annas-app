@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useHabits } from '@/hooks/use-habits'
 import { useMoods } from '@/hooks/use-moods'
 import { useWorkouts } from '@/hooks/use-workouts'
@@ -10,6 +11,7 @@ import { HabitToggle } from '@/components/dashboard/habit-toggle'
 import { HabitForm } from '@/components/forms/habit-form'
 import { MoodPicker } from '@/components/dashboard/mood-picker'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
+import { MoodHeatmap, HabitHeatmap } from '@/components/charts'
 import { Moon, Footprints, Plus, ArrowRight, Dumbbell, Sun, Sparkles } from 'lucide-react'
 import { formatDate } from '@/lib/utils/dates'
 import Link from 'next/link'
@@ -30,7 +32,7 @@ const getGreeting = () => {
 }
 
 export default function DashboardPage() {
-  const { habits, loading: habitsLoading, createHabit, toggleCompletion, isCompleted } = useHabits()
+  const { habits, completions, loading: habitsLoading, createHabit, toggleCompletion, isCompleted } = useHabits()
   const { moods, loading: moodsLoading, saveMood, getTodayMood } = useMoods()
   const { workouts, loading: workoutsLoading } = useWorkouts()
   const { garminStatus, getTodayHealth, formatSleepDuration, loading: healthLoading } = useHealth()
@@ -44,9 +46,10 @@ export default function DashboardPage() {
   const GreetingIcon = greeting.icon
 
   const thisWeekWorkouts = workouts.filter(w => {
-    const workoutDate = new Date(w.date)
+    const workoutDate = new Date(w.date + 'T00:00:00')
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
+    weekAgo.setHours(0, 0, 0, 0)
     return workoutDate >= weekAgo
   })
 
@@ -55,6 +58,40 @@ export default function DashboardPage() {
   }
 
   const loading = habitsLoading || moodsLoading || workoutsLoading || healthLoading
+
+  const moodHeatmapData = useMemo(() => {
+    return moods
+      .filter(m => m.mood !== null)
+      .map(m => ({ date: m.date, mood: m.mood as number }))
+  }, [moods])
+
+  const habitHeatmapData = useMemo(() => {
+    const dateMap = new Map<string, { completed: number; total: number }>()
+    
+    completions.forEach(c => {
+      if (c.completed) {
+        const existing = dateMap.get(c.date) || { completed: 0, total: habits.length }
+        existing.completed += 1
+        dateMap.set(c.date, existing)
+      }
+    })
+
+    const now = new Date()
+    for (let i = 0; i < 365; i++) {
+      const date = new Date(now)
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      if (!dateMap.has(dateStr)) {
+        dateMap.set(dateStr, { completed: 0, total: habits.length })
+      }
+    }
+
+    return Array.from(dateMap.entries()).map(([date, data]) => ({
+      date,
+      completed: data.completed,
+      total: data.total,
+    }))
+  }, [habits, completions])
 
   if (loading) {
     return <DashboardSkeleton />
@@ -75,7 +112,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/20 dark:to-rose-950/20 border-pink-100 dark:border-pink-900/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-pink-700 dark:text-pink-300">Today&apos;s Mood</CardTitle>
             <span className="text-2xl filter drop-shadow-md transition-transform hover:scale-110">{todayMood?.mood ? MOOD_EMOJIS[todayMood.mood] : '❓'}</span>
           </CardHeader>
@@ -89,7 +126,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border-orange-100 dark:border-orange-900/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Workouts</CardTitle>
             <div className="p-2 bg-white/50 dark:bg-white/10 rounded-full">
               <Dumbbell className="h-4 w-4 text-orange-600 dark:text-orange-400" />
@@ -103,7 +140,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 border-indigo-100 dark:border-indigo-900/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Sleep</CardTitle>
             <div className="p-2 bg-white/50 dark:bg-white/10 rounded-full">
               <Moon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -124,7 +161,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 border-emerald-100 dark:border-emerald-900/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Steps</CardTitle>
             <div className="p-2 bg-white/50 dark:bg-white/10 rounded-full">
               <Footprints className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -142,6 +179,37 @@ export default function DashboardPage() {
                 : <Link href="/settings" className="hover:underline flex items-center gap-1">Connect Garmin <ArrowRight className="h-3 w-3" /></Link>
               }
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Habit Completion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {habits.length > 0 ? (
+              <HabitHeatmap data={habitHeatmapData} />
+            ) : (
+              <div className="h-[150px] flex items-center justify-center text-muted-foreground text-sm">
+                Create habits to see your consistency
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Mood History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {moods.length > 0 ? (
+              <MoodHeatmap data={moodHeatmapData} />
+            ) : (
+              <div className="h-[150px] flex items-center justify-center text-muted-foreground text-sm">
+                Start logging your mood to see patterns
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

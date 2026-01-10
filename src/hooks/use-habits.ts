@@ -102,9 +102,11 @@ export function useHabits() {
   useEffect(() => {
     const init = async () => {
       setLoading(true)
+      const oneYearAgo = new Date()
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
       await Promise.all([
         fetchHabits(),
-        fetchCompletions(formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)), formatDate(new Date()))
+        fetchCompletions(formatDate(oneYearAgo), formatDate(new Date()))
       ])
       setLoading(false)
     }

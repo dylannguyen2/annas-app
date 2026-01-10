@@ -164,7 +164,7 @@ export default function CyclePage() {
       </div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-        <Card className="p-3">
+        <Card className="px-8">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-muted-foreground">Cycle Day</span>
             <CalendarIcon className="h-3 w-3 text-muted-foreground" />
@@ -177,7 +177,7 @@ export default function CyclePage() {
           </p>
         </Card>
 
-        <Card className="p-3">
+        <Card className="px-8">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-muted-foreground">Next Period</span>
             <Droplet className="h-3 w-3 text-muted-foreground" />
@@ -197,7 +197,7 @@ export default function CyclePage() {
           </p>
         </Card>
 
-        <Card className="p-3">
+        <Card className="px-8">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-muted-foreground">Fertile Window</span>
             <Heart className="h-3 w-3 text-muted-foreground" />
@@ -215,7 +215,7 @@ export default function CyclePage() {
           </p>
         </Card>
 
-        <Card className="p-3">
+        <Card className="px-8">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-muted-foreground">Avg Cycle</span>
             <Sparkles className="h-3 w-3 text-muted-foreground" />
@@ -229,7 +229,7 @@ export default function CyclePage() {
 
       <div className="grid gap-3 lg:grid-cols-[320px_1fr]">
         <Card className="flex flex-col">
-          <CardHeader className="pb-2">
+          <CardHeader className="">
             <CardTitle className="text-base">Calendar</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col pt-0">
@@ -338,7 +338,7 @@ export default function CyclePage() {
 
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col">
-            <CardHeader className="pb-2">
+            <CardHeader className="">
               <CardTitle className="text-base">Recent Cycles</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -370,7 +370,7 @@ export default function CyclePage() {
 
           {selectedDate && existingLog && (
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-base">
                   {selectedDate.toLocaleDateString('en-AU', { month: 'long', day: 'numeric' })}
                 </CardTitle>

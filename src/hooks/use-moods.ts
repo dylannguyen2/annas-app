@@ -77,9 +77,9 @@ export function useMoods() {
   useEffect(() => {
     const init = async () => {
       setLoading(true)
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      await fetchMoods(formatDate(thirtyDaysAgo), formatDate(new Date()))
+      const oneYearAgo = new Date()
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+      await fetchMoods(formatDate(oneYearAgo), formatDate(new Date()))
       setLoading(false)
     }
     init()

@@ -18,6 +18,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Anna's World",
   description: 'Track your habits, mood, and health data',
+  icons: {
+    icon: '/anna.jpeg',
+    apple: '/anna.jpeg',
+  },
 }
 
 export default function RootLayout({

@@ -14,26 +14,44 @@ import {
   Settings,
   Dumbbell,
   Droplet,
-  Sparkles,
   Flower2,
   Menu,
   UtensilsCrossed,
-  Activity
+  BookOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Habits', href: '/habits', icon: CheckSquare },
-  { name: 'Mood', href: '/mood', icon: Smile },
-  { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
-  { name: 'Workouts', href: '/workouts', icon: Dumbbell },
-  { name: 'Activities', href: '/activities', icon: Activity },
-  { name: 'Cycle', href: '/cycle', icon: Droplet },
-  { name: 'Health', href: '/health', icon: Heart },
-  { name: 'Insights', href: '/insights', icon: Lightbulb },
-  { name: 'History', href: '/history', icon: Calendar },
-  { name: 'Settings', href: '/settings', icon: Settings },
+const navGroups = [
+  {
+    label: 'Overview',
+    items: [
+      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: 'Daily Tracking',
+    items: [
+      { name: 'Habits', href: '/habits', icon: CheckSquare },
+      { name: 'Mood', href: '/mood', icon: Smile },
+      { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
+      { name: 'Books', href: '/books', icon: BookOpen },
+    ],
+  },
+  {
+    label: 'Health & Fitness',
+    items: [
+      { name: 'Workouts', href: '/workouts', icon: Dumbbell },
+      { name: 'Health', href: '/health', icon: Heart },
+      { name: 'Cycle', href: '/cycle', icon: Droplet },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { name: 'Insights', href: '/insights', icon: Lightbulb },
+      { name: 'History', href: '/history', icon: Calendar },
+    ],
+  },
 ]
 
 export function Sidebar() {
@@ -47,7 +65,7 @@ export function Sidebar() {
         isCollapsed ? "md:w-20" : "md:w-64"
       )}
     >
-      <div className="flex flex-col flex-grow pt-8 bg-card/50 backdrop-blur-xl border-r border-border/50 overflow-y-auto overflow-x-hidden">
+      <div className="flex flex-col flex-grow pt-6 bg-card/50 backdrop-blur-xl border-r border-border/50 overflow-y-auto overflow-x-hidden">
         <div className="px-4">
           <div className={cn(
             "flex items-center flex-shrink-0 transition-all duration-300",
@@ -65,66 +83,103 @@ export function Sidebar() {
           </div>
         </div>
 
-        <div className="mt-10 flex-grow flex flex-col px-4">
-          <nav className="flex-1 space-y-2">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    'group flex items-center py-3 text-sm font-medium rounded-2xl transition-all duration-200 ease-spring',
-                    isCollapsed ? "justify-center px-2" : "px-4",
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:translate-x-1'
-                  )}
-                  title={isCollapsed ? item.name : undefined}
-                >
-                  <item.icon
-                    className={cn(
-                      'h-5 w-5 flex-shrink-0 transition-transform duration-300',
-                      !isCollapsed && "mr-3",
-                      isActive ? 'text-primary-foreground animate-bounce-subtle' : 'text-muted-foreground group-hover:text-accent-foreground group-hover:rotate-12'
-                    )}
-                  />
-                  <span className={cn(
-                    "whitespace-nowrap transition-all duration-300",
-                    isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"
-                  )}>
-                    {item.name}
-                  </span>
-                </Link>
-              )
-            })}
+        <div className="mt-6 flex-grow flex flex-col px-3">
+          <nav className="flex-1 space-y-6">
+            {navGroups.map((group) => (
+              <div key={group.label}>
+                {!isCollapsed && (
+                  <h3 className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    {group.label}
+                  </h3>
+                )}
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={cn(
+                          'group flex items-center py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
+                          isCollapsed ? "justify-center px-2" : "px-3",
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )}
+                        title={isCollapsed ? item.name : undefined}
+                      >
+                        <item.icon
+                          className={cn(
+                            'h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200',
+                            !isCollapsed && "mr-3",
+                            isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
+                          )}
+                        />
+                        <span className={cn(
+                          "whitespace-nowrap transition-all duration-300",
+                          isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"
+                        )}>
+                          {item.name}
+                        </span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
 
-        <div className="p-4 mt-auto">
-           <Button
+        <div className="p-3 mt-auto space-y-2">
+          <Link
+            href="/settings"
+            className={cn(
+              'group flex items-center py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
+              isCollapsed ? "justify-center px-2" : "px-3",
+              pathname === '/settings'
+                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            )}
+            title={isCollapsed ? 'Settings' : undefined}
+          >
+            <Settings
+              className={cn(
+                'h-[18px] w-[18px] flex-shrink-0',
+                !isCollapsed && "mr-3",
+                pathname === '/settings' ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
+              )}
+            />
+            <span className={cn(
+              "whitespace-nowrap transition-all duration-300",
+              isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"
+            )}>
+              Settings
+            </span>
+          </Link>
+
+          <Button
             variant="ghost"
             size="sm"
             onClick={toggleSidebar}
             className={cn(
-              "w-full mb-4 hover:bg-accent/50 text-muted-foreground hover:text-foreground transition-all duration-300",
-              isCollapsed ? "h-10 px-0" : "h-9 justify-start px-2"
+              "w-full hover:bg-accent/50 text-muted-foreground hover:text-foreground transition-all duration-300",
+              isCollapsed ? "h-10 px-0" : "h-9 justify-start px-3"
             )}
           >
-            <Menu className="h-5 w-5" />
-            {!isCollapsed && <span className="ml-2">Menu</span>}
+            <Menu className="h-[18px] w-[18px]" />
+            {!isCollapsed && <span className="ml-3">Collapse</span>}
           </Button>
 
           <div className={cn(
-            "bg-gradient-to-br from-primary/10 to-accent/10 rounded-3xl p-4 border border-primary/10 transition-all duration-500",
+            "bg-gradient-to-br from-primary/10 to-accent/10 rounded-2xl p-3 border border-primary/10 transition-all duration-500",
             isCollapsed ? "opacity-0 h-0 p-0 overflow-hidden border-0" : "opacity-100 h-auto"
           )}>
-            <div className="flex items-center gap-2 mb-2">
-              <Flower2 className="h-4 w-4 text-primary" />
-              <span className="text-xs font-semibold text-primary whitespace-nowrap">Daily Vibe</span>
+            <div className="flex items-center gap-2 mb-1">
+              <Flower2 className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">Daily Vibe</span>
             </div>
-            <p className="text-xs text-muted-foreground italic whitespace-nowrap overflow-hidden text-ellipsis">
-              &quot;You&apos;re doing great today!&quot;
+            <p className="text-xs text-muted-foreground italic">
+              You're doing great today!
             </p>
           </div>
         </div>

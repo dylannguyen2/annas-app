@@ -142,16 +142,6 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label>Meal Type</Label>
             <div className="grid grid-cols-4 gap-2">
               {MEAL_TYPES.map((type) => (
@@ -178,7 +168,6 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handlePhotoSelect}
               className="hidden"
             />
@@ -205,15 +194,15 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
             ) : (
               <button
                 type="button"
-                className="w-full h-40 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all active:scale-[0.98]"
+                className="w-full h-32 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all active:scale-[0.98]"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Camera className="h-8 w-8 text-primary" />
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Camera className="h-6 w-6 text-primary" />
                 </div>
                 <div className="text-center">
-                  <p className="font-medium text-primary">Take Photo</p>
-                  <p className="text-xs text-muted-foreground">Tap to open camera</p>
+                  <p className="text-sm font-medium text-primary">Add Photo</p>
+                  <p className="text-xs text-muted-foreground">Camera or gallery</p>
                 </div>
               </button>
             )}
@@ -229,15 +218,25 @@ export function MealForm({ meal, onSubmit, onUploadPhoto, trigger, open: control
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Textarea
-              id="notes"
-              placeholder="Any additional notes..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Input
+                id="notes"
+                placeholder="Optional notes..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3">

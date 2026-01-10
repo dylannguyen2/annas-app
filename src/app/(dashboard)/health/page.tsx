@@ -124,7 +124,7 @@ export default function HealthPage() {
         <TabsContent value="sleep" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Duration</CardTitle>
               </CardHeader>
               <CardContent>
@@ -134,7 +134,7 @@ export default function HealthPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Deep Sleep</CardTitle>
               </CardHeader>
               <CardContent>
@@ -144,7 +144,7 @@ export default function HealthPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Light Sleep</CardTitle>
               </CardHeader>
               <CardContent>
@@ -154,7 +154,7 @@ export default function HealthPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">REM Sleep</CardTitle>
               </CardHeader>
               <CardContent>
@@ -177,7 +177,7 @@ export default function HealthPage() {
         <TabsContent value="activity" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Steps</CardTitle>
               </CardHeader>
               <CardContent>
@@ -187,7 +187,7 @@ export default function HealthPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Distance</CardTitle>
               </CardHeader>
               <CardContent>
@@ -197,7 +197,7 @@ export default function HealthPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Calories</CardTitle>
               </CardHeader>
               <CardContent>
@@ -220,7 +220,7 @@ export default function HealthPage() {
         <TabsContent value="heart" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Resting HR</CardTitle>
               </CardHeader>
               <CardContent>
@@ -230,7 +230,7 @@ export default function HealthPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Average HR</CardTitle>
               </CardHeader>
               <CardContent>
@@ -240,7 +240,7 @@ export default function HealthPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Min HR</CardTitle>
               </CardHeader>
               <CardContent>
@@ -250,7 +250,7 @@ export default function HealthPage() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Max HR</CardTitle>
               </CardHeader>
               <CardContent>

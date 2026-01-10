@@ -50,6 +50,7 @@ interface WorkoutFormProps {
     date: string
     workout_type: string
     duration_minutes?: number
+    calories?: number
     intensity?: 'light' | 'moderate' | 'hard' | 'intense'
     notes?: string
   }) => Promise<void>
@@ -61,6 +62,7 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
   const [date, setDate] = useState(formatDate(new Date()))
   const [workoutType, setWorkoutType] = useState('')
   const [duration, setDuration] = useState('')
+  const [calories, setCalories] = useState('')
   const [intensity, setIntensity] = useState<string>('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -75,12 +77,14 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
         date,
         workout_type: workoutType,
         duration_minutes: duration ? parseInt(duration) : undefined,
+        calories: calories ? parseInt(calories) : undefined,
         intensity: intensity as 'light' | 'moderate' | 'hard' | 'intense' | undefined,
         notes: notes || undefined,
       })
       setOpen(false)
       setWorkoutType('')
       setDuration('')
+      setCalories('')
       setIntensity('')
       setNotes('')
       setDate(formatDate(new Date()))
@@ -135,22 +139,32 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration (min)</Label>
+              <Label htmlFor="duration">Duration</Label>
               <Input
                 id="duration"
                 type="number"
-                placeholder="30"
+                placeholder="min"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="calories">Calories</Label>
+              <Input
+                id="calories"
+                type="number"
+                placeholder="kcal"
+                value={calories}
+                onChange={(e) => setCalories(e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label>Intensity</Label>
               <Select value={intensity} onValueChange={setIntensity}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select" />
+                  <SelectValue placeholder="Level" />
                 </SelectTrigger>
                 <SelectContent>
                   {INTENSITIES.map((i) => (
@@ -164,13 +178,12 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
+            <Label htmlFor="notes">Notes (optional)</Label>
+            <Input
               id="notes"
-              placeholder="How did it go? Any PRs?"
+              placeholder="How did it go?"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3}
             />
           </div>
 

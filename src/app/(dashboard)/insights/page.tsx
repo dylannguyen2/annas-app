@@ -218,37 +218,39 @@ export default function InsightsPage() {
         </TabsList>
 
         <TabsContent value="heatmaps" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Mood Heatmap</CardTitle>
-              <CardDescription>Your mood patterns throughout the year</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {moods.length > 0 ? (
-                <MoodHeatmap data={moodHeatmapData} />
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  Start logging your mood to see patterns
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Mood Heatmap</CardTitle>
+                <CardDescription>Your mood patterns throughout the year</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {moods.length > 0 ? (
+                  <MoodHeatmap data={moodHeatmapData} />
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                    Start logging your mood to see patterns
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Habit Completion Heatmap</CardTitle>
-              <CardDescription>Your habit consistency throughout the year</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {habits.length > 0 ? (
-                <HabitHeatmap data={habitHeatmapData} />
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  Create habits to track your consistency
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Habit Completion Heatmap</CardTitle>
+                <CardDescription>Your habit consistency throughout the year</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {habits.length > 0 ? (
+                  <HabitHeatmap data={habitHeatmapData} />
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                    Create habits to track your consistency
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="correlations" className="space-y-4">

@@ -20,7 +20,7 @@ export function HealthSkeleton() {
         <div className="grid gap-4 md:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
-              <CardHeader className="pb-2">
+              <CardHeader className="">
                 <Skeleton className="h-4 w-20" />
               </CardHeader>
               <CardContent>
