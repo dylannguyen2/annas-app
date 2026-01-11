@@ -14,19 +14,66 @@ export interface Database {
           id: string
           display_name: string | null
           timezone: string
+          stripe_customer_id: string | null
           created_at: string
         }
         Insert: {
           id: string
           display_name?: string | null
           timezone?: string
+          stripe_customer_id?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           display_name?: string | null
           timezone?: string
+          stripe_customer_id?: string | null
           created_at?: string
+        }
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          stripe_subscription_id: string
+          stripe_price_id: string
+          stripe_customer_id: string
+          status: 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid' | 'paused'
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end: boolean
+          trial_end: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          stripe_subscription_id: string
+          stripe_price_id: string
+          stripe_customer_id: string
+          status: 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid' | 'paused'
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end?: boolean
+          trial_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          stripe_subscription_id?: string
+          stripe_price_id?: string
+          stripe_customer_id?: string
+          status?: 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid' | 'paused'
+          current_period_start?: string
+          current_period_end?: string
+          cancel_at_period_end?: boolean
+          trial_end?: string | null
+          created_at?: string
+          updated_at?: string
         }
       }
       garmin_credentials: {
@@ -536,4 +583,6 @@ export type Meal = Tables<'meals'>
 export type Activity = Tables<'activities'>
 export type Book = Tables<'books'>
 export type Todo = Tables<'todos'>
+export type Subscription = Tables<'subscriptions'>
 export type TodoQuadrant = 'do_first' | 'schedule' | 'delegate' | 'eliminate'
+export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid' | 'paused'

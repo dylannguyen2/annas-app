@@ -8,9 +8,12 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useHealth } from '@/hooks/use-health'
-import { Loader2, Check, X, RefreshCw, FileJson, FileText } from 'lucide-react'
+import { Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ThemeSwitcher } from '@/components/theme-switcher'
+import useSWR from 'swr'
+
+const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export default function SettingsPage() {
   const { garminStatus, connectGarmin, disconnectGarmin, syncing, syncGarmin } = useHealth()
@@ -22,10 +25,33 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [openingPortal, setOpeningPortal] = useState(false)
+
+  const { data: subscription } = useSWR<{
+    status: string
+    current_period_end: string
+    trial_end: string | null
+    cancel_at_period_end: boolean
+  }>('/api/subscription', fetcher)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const handleManageBilling = async () => {
+    setOpeningPortal(true)
+    try {
+      const response = await fetch('/api/billing/portal', { method: 'POST' })
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to open billing portal')
+    } finally {
+      setOpeningPortal(false)
+    }
+  }
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -181,6 +207,60 @@ export default function SettingsPage() {
                 We use them only to sync your health data.
               </p>
             </form>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Subscription</CardTitle>
+          <CardDescription>
+            Manage your subscription and billing
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {subscription ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Pro Plan</p>
+                  <p className="text-sm text-muted-foreground">
+                    {subscription.status === 'trialing' ? (
+                      <>Trial ends {new Date(subscription.trial_end || subscription.current_period_end).toLocaleDateString()}</>
+                    ) : subscription.cancel_at_period_end ? (
+                      <>Cancels {new Date(subscription.current_period_end).toLocaleDateString()}</>
+                    ) : (
+                      <>Renews {new Date(subscription.current_period_end).toLocaleDateString()}</>
+                    )}
+                  </p>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  subscription.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                  subscription.status === 'trialing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                }`}>
+                  {subscription.status === 'trialing' ? 'Trial' : 
+                   subscription.status === 'active' ? 'Active' : 
+                   subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                </span>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleManageBilling}
+                disabled={openingPortal}
+              >
+                {openingPortal ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-4 w-4" />
+                )}
+                Manage Billing
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">Loading subscription...</p>
+            </div>
           )}
         </CardContent>
       </Card>
