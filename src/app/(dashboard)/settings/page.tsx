@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useHealth } from '@/hooks/use-health'
-import { Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard, Eye, EyeOff, Share2, Copy, Trash2 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useFeatureVisibility } from '@/hooks/use-feature-visibility'
@@ -28,8 +28,18 @@ export default function SettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
+  const [demoLoading, setDemoLoading] = useState(false)
+  const [demoCopied, setDemoCopied] = useState(false)
 
   const { hiddenFeatures, toggleFeature, isFeatureVisible } = useFeatureVisibility()
+
+  const { data: demoSession, mutate: mutateDemoSession } = useSWR<{
+    active: boolean
+    token?: string
+    url?: string
+    expires_at?: string
+    started_at?: string
+  }>('/api/demo', fetcher)
 
   const { data: subscription } = useSWR<{
     status: string
@@ -54,6 +64,41 @@ export default function SettingsPage() {
       setError(err instanceof Error ? err.message : 'Failed to open billing portal')
     } finally {
       setOpeningPortal(false)
+    }
+  }
+
+  const handleStartDemo = async () => {
+    setDemoLoading(true)
+    try {
+      const response = await fetch('/api/demo', { method: 'POST' })
+      const data = await response.json()
+      if (data.url) {
+        mutateDemoSession({ active: true, ...data })
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start demo')
+    } finally {
+      setDemoLoading(false)
+    }
+  }
+
+  const handleEndDemo = async () => {
+    setDemoLoading(true)
+    try {
+      await fetch('/api/demo', { method: 'DELETE' })
+      mutateDemoSession({ active: false })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to end demo')
+    } finally {
+      setDemoLoading(false)
+    }
+  }
+
+  const handleCopyDemoLink = async () => {
+    if (demoSession?.url) {
+      await navigator.clipboard.writeText(demoSession.url)
+      setDemoCopied(true)
+      setTimeout(() => setDemoCopied(false), 2000)
     }
   }
 
@@ -268,6 +313,84 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {demoSession !== undefined && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Demo Mode</CardTitle>
+            <CardDescription>
+              Share a temporary demo link with friends or colleagues
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {demoSession?.active ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <Share2 className="h-5 w-5" />
+                  <span className="font-medium">Demo session active</span>
+                </div>
+                
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Share this link:</p>
+                  <code className="text-sm break-all">{demoSession.url}</code>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  Expires: {demoSession.expires_at && new Date(demoSession.expires_at).toLocaleString()}
+                </p>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleCopyDemoLink}
+                    disabled={demoLoading}
+                  >
+                    {demoCopied ? (
+                      <Check className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Copy className="mr-2 h-4 w-4" />
+                    )}
+                    {demoCopied ? 'Copied!' : 'Copy Link'}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleEndDemo}
+                    disabled={demoLoading}
+                  >
+                    {demoLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
+                    End Demo
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Ending the demo will delete all data created during this session.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Start a demo session to generate a shareable link. Anyone with the link can view your app for 24 hours. When you end the session, all data created during the demo will be deleted.
+                </p>
+                <Button
+                  onClick={handleStartDemo}
+                  disabled={demoLoading}
+                >
+                  {demoLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Share2 className="mr-2 h-4 w-4" />
+                  )}
+                  Start Demo Session
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

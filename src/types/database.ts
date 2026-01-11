@@ -558,6 +558,35 @@ export interface Database {
           created_at?: string
         }
       }
+      demo_sessions: {
+        Row: {
+          id: string
+          owner_id: string
+          token: string
+          started_at: string
+          expires_at: string
+          ended_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          owner_id: string
+          token: string
+          started_at?: string
+          expires_at: string
+          ended_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          owner_id?: string
+          token?: string
+          started_at?: string
+          expires_at?: string
+          ended_at?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -587,5 +616,6 @@ export type Activity = Tables<'activities'>
 export type Book = Tables<'books'>
 export type Todo = Tables<'todos'>
 export type Subscription = Tables<'subscriptions'>
+export type DemoSession = Tables<'demo_sessions'>
 export type TodoQuadrant = 'do_first' | 'schedule' | 'delegate' | 'eliminate'
 export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid' | 'paused'

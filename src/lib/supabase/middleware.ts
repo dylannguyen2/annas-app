@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   '/auth',
   '/pricing',
   '/api/webhooks',
+  '/demo',
 ]
 
 function isPublicRoute(pathname: string): boolean {
@@ -46,6 +47,24 @@ export async function updateSession(request: NextRequest) {
 
   if (isPublicRoute(pathname) || pathname === '/') {
     return supabaseResponse
+  }
+
+  const demoToken = request.cookies.get('demo_token')?.value
+  const demoOwnerId = request.cookies.get('demo_owner_id')?.value
+
+  if (demoToken && demoOwnerId) {
+    const { data: demoSession } = await supabase
+      .from('demo_sessions')
+      .select('*')
+      .eq('token', demoToken)
+      .eq('owner_id', demoOwnerId)
+      .is('ended_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    if (demoSession) {
+      return supabaseResponse
+    }
   }
 
   const {
