@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/layout/layout-client'
+import { useFeatureVisibility } from '@/hooks/use-feature-visibility'
 import {
   LayoutDashboard,
   CheckSquare,
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-const navGroups = [
+export const navGroups = [
   {
     label: 'Overview',
     items: [
@@ -66,6 +67,7 @@ const navGroups = [
 export function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, toggleSidebar } = useSidebar()
+  const { isFeatureVisible } = useFeatureVisibility()
 
   return (
     <aside 
@@ -94,48 +96,53 @@ export function Sidebar() {
 
         <div className="mt-6 flex-grow flex flex-col px-3">
           <nav className="flex-1 space-y-6">
-            {navGroups.map((group) => (
-              <div key={group.label}>
-                {!isCollapsed && (
-                  <h3 className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    {group.label}
-                  </h3>
-                )}
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const isActive = pathname === item.href
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={cn(
-                          'group flex items-center py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
-                          isCollapsed ? "justify-center px-2" : "px-3",
-                          isActive
-                            ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                        )}
-                        title={isCollapsed ? item.name : undefined}
-                      >
-                        <item.icon
+            {navGroups.map((group) => {
+              const visibleItems = group.items.filter(item => isFeatureVisible(item.href))
+              if (visibleItems.length === 0) return null
+              
+              return (
+                <div key={group.label}>
+                  {!isCollapsed && (
+                    <h3 className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                      {group.label}
+                    </h3>
+                  )}
+                  <div className="space-y-1">
+                    {visibleItems.map((item) => {
+                      const isActive = pathname === item.href
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
                           className={cn(
-                            'h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200',
-                            !isCollapsed && "mr-3",
-                            isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
+                            'group flex items-center py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
+                            isCollapsed ? "justify-center px-2" : "px-3",
+                            isActive
+                              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                           )}
-                        />
-                        <span className={cn(
-                          "whitespace-nowrap transition-all duration-300",
-                          isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"
-                        )}>
-                          {item.name}
-                        </span>
-                      </Link>
-                    )
-                  })}
+                          title={isCollapsed ? item.name : undefined}
+                        >
+                          <item.icon
+                            className={cn(
+                              'h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200',
+                              !isCollapsed && "mr-3",
+                              isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
+                            )}
+                          />
+                          <span className={cn(
+                            "whitespace-nowrap transition-all duration-300",
+                            isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"
+                          )}>
+                            {item.name}
+                          </span>
+                        </Link>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </nav>
         </div>
 

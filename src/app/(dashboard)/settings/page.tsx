@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useHealth } from '@/hooks/use-health'
-import { Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard } from 'lucide-react'
+import { Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard, Eye, EyeOff } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ThemeSwitcher } from '@/components/theme-switcher'
+import { useFeatureVisibility } from '@/hooks/use-feature-visibility'
+import { navGroups } from '@/components/layout/sidebar'
 import useSWR from 'swr'
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -26,6 +28,8 @@ export default function SettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
+
+  const { hiddenFeatures, toggleFeature, isFeatureVisible } = useFeatureVisibility()
 
   const { data: subscription } = useSWR<{
     status: string
@@ -319,6 +323,53 @@ export default function SettingsPage() {
             </div>
             <Switch />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Feature Visibility</CardTitle>
+          <CardDescription>
+            Choose which features to show in the sidebar
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                {group.label}
+              </p>
+              <div className="space-y-2">
+                {group.items.map((item) => {
+                  const isVisible = isFeatureVisible(item.href)
+                  return (
+                    <div key={item.href} className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{item.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleFeature(item.href)}
+                        className="h-8 w-8 p-0"
+                      >
+                        {isVisible ? (
+                          <Eye className="h-4 w-4 text-primary" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+              <Separator className="mt-3" />
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground">
+            Hidden features are removed from the sidebar but can still be accessed via URL.
+          </p>
         </CardContent>
       </Card>
 

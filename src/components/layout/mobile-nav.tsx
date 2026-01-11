@@ -19,6 +19,7 @@ import {
   UtensilsCrossed,
   BookOpen,
   ListTodo,
+  Clapperboard,
 } from 'lucide-react'
 
 const mainNav = [
@@ -32,6 +33,7 @@ const moreNav = [
   { name: 'Tasks', href: '/todos', icon: ListTodo },
   { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
   { name: 'Books', href: '/books', icon: BookOpen },
+  { name: 'Media', href: '/media', icon: Clapperboard },
   { name: 'Workouts', href: '/workouts', icon: Dumbbell },
   { name: 'Cycle', href: '/cycle', icon: Droplet },
   { name: 'Insights', href: '/insights', icon: Lightbulb },
@@ -91,7 +93,7 @@ export function MobileNav() {
           <div
             className={cn(
               "overflow-hidden transition-all duration-300 ease-out",
-              menuOpen && !isAnimating ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+              menuOpen && !isAnimating ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
             )}
           >
             <div className="pt-4 pb-2">
@@ -107,8 +109,8 @@ export function MobileNav() {
               
               <div className="w-12 h-1 bg-border rounded-full mx-auto mb-4" />
               
-              <div className="flex justify-around pb-2">
-                {moreNav.slice(0, 4).map((item, index) => {
+              <div className="grid grid-cols-5 pb-3">
+                {moreNav.map((item, index) => {
                   const isActive = pathname === item.href
                   return (
                     <Link
@@ -116,7 +118,7 @@ export function MobileNav() {
                       href={item.href}
                       onClick={handleClose}
                       className={cn(
-                        'flex flex-col items-center justify-center p-3 rounded-2xl transition-all active:scale-95 flex-1',
+                        'flex flex-col items-center justify-center py-3 rounded-xl transition-all active:scale-95 mx-1',
                         isActive
                           ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
                           : 'text-muted-foreground hover:bg-secondary active:bg-secondary/80'
@@ -128,33 +130,7 @@ export function MobileNav() {
                       }}
                     >
                       <item.icon className="h-5 w-5" />
-                      <span className="text-[11px] mt-1.5 font-medium">{item.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
-              <div className="flex justify-around pb-2">
-                {moreNav.slice(4).map((item, index) => {
-                  const isActive = pathname === item.href
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={handleClose}
-                      className={cn(
-                        'flex flex-col items-center justify-center p-3 rounded-2xl transition-all active:scale-95 flex-1',
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                          : 'text-muted-foreground hover:bg-secondary active:bg-secondary/80'
-                      )}
-                      style={{
-                        transitionDelay: menuOpen && !isAnimating ? `${(index + 4) * 30}ms` : '0ms',
-                        transform: menuOpen && !isAnimating ? 'translateY(0)' : 'translateY(10px)',
-                        opacity: menuOpen && !isAnimating ? 1 : 0,
-                      }}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span className="text-[11px] mt-1.5 font-medium">{item.name}</span>
+                      <span className="text-[11px] mt-1.5 font-medium text-center">{item.name}</span>
                     </Link>
                   )
                 })}

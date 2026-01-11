@@ -15,6 +15,7 @@ export interface Database {
           display_name: string | null
           timezone: string
           stripe_customer_id: string | null
+          hidden_features: string[]
           created_at: string
         }
         Insert: {
@@ -22,6 +23,7 @@ export interface Database {
           display_name?: string | null
           timezone?: string
           stripe_customer_id?: string | null
+          hidden_features?: string[]
           created_at?: string
         }
         Update: {
@@ -29,6 +31,7 @@ export interface Database {
           display_name?: string | null
           timezone?: string
           stripe_customer_id?: string | null
+          hidden_features?: string[]
           created_at?: string
         }
       }
