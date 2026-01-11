@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { WorkoutForm } from '@/components/forms/workout-form'
 import { useAllWorkouts, UnifiedWorkout } from '@/hooks/use-all-workouts'
-import { RefreshCw, Loader2, Clock, Flame, Heart, Footprints, Trash2, Watch, PenLine, MapPin, Upload, ChevronLeft, ChevronRight, X, Activity } from 'lucide-react'
+import { RefreshCw, Loader2, Clock, Flame, Heart, Footprints, Trash2, Watch, PenLine, MapPin, Upload, ChevronLeft, ChevronRight, X, Activity, CalendarIcon } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO, format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isSameMonth, isSameDay, isToday, isFuture } from 'date-fns'
@@ -213,14 +213,27 @@ export default function WorkoutsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Workouts</h2>
           <p className="text-muted-foreground">
             Synced from Garmin and manual entries
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative lg:hidden">
+            <Button variant="outline" size="sm" className="gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              {selectedDate ? (isToday(selectedDate) ? 'Today' : format(selectedDate, 'MMM d')) : 'Select Date'}
+            </Button>
+            <input
+              type="date"
+              value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+              max={format(new Date(), 'yyyy-MM-dd')}
+              onChange={(e) => e.target.value && setSelectedDate(new Date(e.target.value + 'T00:00:00'))}
+              className="absolute inset-0 z-10 opacity-0 cursor-pointer"
+            />
+          </div>
           <input
             type="file"
             ref={fileInputRef}
@@ -299,7 +312,7 @@ export default function WorkoutsPage() {
 
       
       <div className="flex flex-col lg:flex-row gap-6 items-stretch">
-        <div className="w-full lg:w-[400px] shrink-0">
+        <div className="hidden lg:block w-full lg:w-[400px] shrink-0">
           <Card className="overflow-hidden" ref={calendarRef}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-base font-semibold">
