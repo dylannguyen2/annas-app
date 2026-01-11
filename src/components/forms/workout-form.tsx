@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus } from 'lucide-react'
+import { Plus, PenLine } from 'lucide-react'
 import { formatDate } from '@/lib/utils/dates'
 
 const WORKOUT_TYPES = [
@@ -45,27 +45,41 @@ const INTENSITIES = [
   { value: 'intense', label: 'Intense', description: 'Maximum effort' },
 ]
 
-interface WorkoutFormProps {
-  onSubmit: (data: {
-    date: string
-    workout_type: string
-    duration_minutes?: number
-    calories?: number
-    intensity?: 'light' | 'moderate' | 'hard' | 'intense'
-    notes?: string
-  }) => Promise<void>
-  trigger?: React.ReactNode
+interface WorkoutFormData {
+  date: string
+  workout_type: string
+  duration_minutes?: number
+  calories?: number
+  intensity?: 'light' | 'moderate' | 'hard' | 'intense'
+  notes?: string
 }
 
-export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
+interface WorkoutFormProps {
+  onSubmit: (data: WorkoutFormData) => Promise<void>
+  trigger?: React.ReactNode
+  initialData?: WorkoutFormData
+}
+
+export function WorkoutForm({ onSubmit, trigger, initialData }: WorkoutFormProps) {
   const [open, setOpen] = useState(false)
-  const [date, setDate] = useState(formatDate(new Date()))
-  const [workoutType, setWorkoutType] = useState('')
-  const [duration, setDuration] = useState('')
-  const [calories, setCalories] = useState('')
-  const [intensity, setIntensity] = useState<string>('')
-  const [notes, setNotes] = useState('')
+  const [date, setDate] = useState(initialData?.date || formatDate(new Date()))
+  const [workoutType, setWorkoutType] = useState(initialData?.workout_type || '')
+  const [duration, setDuration] = useState(initialData?.duration_minutes?.toString() || '')
+  const [calories, setCalories] = useState(initialData?.calories?.toString() || '')
+  const [intensity, setIntensity] = useState<string>(initialData?.intensity || '')
+  const [notes, setNotes] = useState(initialData?.notes || '')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (open && initialData) {
+      setDate(initialData.date)
+      setWorkoutType(initialData.workout_type)
+      setDuration(initialData.duration_minutes?.toString() || '')
+      setCalories(initialData.calories?.toString() || '')
+      setIntensity(initialData.intensity || '')
+      setNotes(initialData.notes || '')
+    }
+  }, [open, initialData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,12 +96,14 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
         notes: notes || undefined,
       })
       setOpen(false)
-      setWorkoutType('')
-      setDuration('')
-      setCalories('')
-      setIntensity('')
-      setNotes('')
-      setDate(formatDate(new Date()))
+      if (!initialData) {
+        setWorkoutType('')
+        setDuration('')
+        setCalories('')
+        setIntensity('')
+        setNotes('')
+        setDate(formatDate(new Date()))
+      }
     } finally {
       setLoading(false)
     }
@@ -105,7 +121,7 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Log Workout</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit Workout' : 'Log Workout'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -192,7 +208,7 @@ export function WorkoutForm({ onSubmit, trigger }: WorkoutFormProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={loading || !workoutType || !date || !duration || !intensity}>
-              {loading ? 'Saving...' : 'Save Workout'}
+              {loading ? 'Saving...' : (initialData ? 'Save Changes' : 'Save Workout')}
             </Button>
           </div>
         </form>

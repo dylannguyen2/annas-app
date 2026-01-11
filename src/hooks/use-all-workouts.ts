@@ -108,6 +108,21 @@ export function useAllWorkouts() {
     return newWorkout
   }
 
+  const updateWorkout = async (id: string, data: Partial<ManualWorkout>) => {
+    const res = await fetch(`/api/workouts/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Failed to update workout')
+    }
+    const updatedWorkout = await res.json()
+    mutate(WORKOUTS_KEY, manualWorkouts.map(w => w.id === id ? updatedWorkout : w), false)
+    return updatedWorkout
+  }
+
   const deleteWorkout = async (id: string) => {
     const res = await fetch(`/api/workouts/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete workout')
@@ -168,6 +183,7 @@ export function useAllWorkouts() {
     error,
     syncGarmin,
     createWorkout,
+    updateWorkout,
     deleteWorkout,
     refetch: () => {
       mutate(ACTIVITIES_KEY)
