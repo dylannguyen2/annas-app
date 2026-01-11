@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { DEMO_ACCOUNT_EMAIL, DEMO_ACCOUNT_PASSWORD } from '@/lib/demo'
 
@@ -32,9 +33,9 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    const supabase = getSupabaseAdmin()
+    const adminClient = getSupabaseAdmin()
 
-    const { data: session, error: sessionError } = await supabase
+    const { data: session, error: sessionError } = await adminClient
       .from('demo_sessions')
       .select('*')
       .eq('token', token)
@@ -52,11 +53,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Demo session has expired' }, { status: 400 })
     }
 
-    const { data: users } = await supabase.auth.admin.listUsers()
+    const { data: users } = await adminClient.auth.admin.listUsers()
     let demoUser = users.users.find(u => u.email === DEMO_ACCOUNT_EMAIL)
 
     if (!demoUser) {
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email: DEMO_ACCOUNT_EMAIL,
         password: DEMO_ACCOUNT_PASSWORD,
         email_confirm: true,
@@ -74,7 +75,12 @@ export async function POST(request: Request) {
       demoUser = newUser.user
     }
 
-    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+    const authClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const { data: sessionData, error: signInError } = await authClient.auth.signInWithPassword({
       email: DEMO_ACCOUNT_EMAIL,
       password: DEMO_ACCOUNT_PASSWORD,
     })
