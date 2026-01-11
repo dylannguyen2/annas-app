@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Heart, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/client'
 
 const FEATURES = [
   'Unlimited habit tracking',
@@ -22,7 +23,34 @@ const FEATURES = [
 export default function PricingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [hasSubscription, setHasSubscription] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsLoggedIn(!!user)
+      
+      if (user) {
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('status, current_period_end')
+          .eq('user_id', user.id)
+          .single()
+        
+        const isActive = subscription && 
+          ['active', 'trialing'].includes(subscription.status) &&
+          new Date(subscription.current_period_end) > new Date()
+        
+        setHasSubscription(!!isActive)
+      }
+      setCheckingAuth(false)
+    }
+    checkAuth()
+  }, [supabase])
 
   const handleStartTrial = async () => {
     setLoading(true)
@@ -59,11 +87,19 @@ export default function PricingPage() {
           <Heart className="h-6 w-6 text-primary fill-primary/10" />
           <span className="font-semibold text-lg">Anna&apos;s World</span>
         </Link>
-        <Link href="/login">
-          <Button variant="ghost" size="sm">
-            Sign In
-          </Button>
-        </Link>
+{isLoggedIn ? (
+          <Link href="/dashboard">
+            <Button variant="ghost" size="sm">
+              Dashboard
+            </Button>
+          </Link>
+        ) : (
+          <Link href="/login">
+            <Button variant="ghost" size="sm">
+              Sign In
+            </Button>
+          </Link>
+        )}
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
@@ -77,16 +113,16 @@ export default function PricingPage() {
         </div>
 
         <Card className="w-full max-w-md border-primary/20 shadow-xl bg-card/50 backdrop-blur-sm">
-          <CardHeader className="text-center pb-4">
-            <div className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">
+          <CardHeader className="flex flex-col items-center text-center pb-4">
+            <div className="bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">
               7-DAY FREE TRIAL
             </div>
             <CardTitle className="text-2xl font-bold">Pro</CardTitle>
-            <CardDescription className="text-sm">
+            <CardDescription className="text-sm mt-1">
               Everything you need to track your wellness
             </CardDescription>
             <div className="mt-4">
-              <span className="text-4xl font-bold">$10</span>
+              <span className="text-4xl font-bold">$12</span>
               <span className="text-muted-foreground">/month</span>
             </div>
           </CardHeader>
@@ -108,25 +144,46 @@ export default function PricingPage() {
               </div>
             )}
 
-            <Button
-              onClick={handleStartTrial}
-              className="w-full font-medium"
-              size="lg"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'Start Free Trial'
-              )}
-            </Button>
-
-            <p className="text-center text-xs text-muted-foreground">
-              No credit card required for trial. Cancel anytime.
-            </p>
+            {checkingAuth ? (
+              <Button className="w-full font-medium" size="lg" disabled>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </Button>
+            ) : hasSubscription ? (
+              <>
+                <div className="p-3 rounded-md bg-primary/10 text-center">
+                  <p className="text-sm font-medium text-primary">You&apos;re already subscribed!</p>
+                </div>
+                <Button
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full font-medium"
+                  size="lg"
+                >
+                  Go to Dashboard
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={handleStartTrial}
+                  className="w-full font-medium"
+                  size="lg"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    'Start Free Trial'
+                  )}
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  No credit card required for trial. Cancel anytime.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </main>
