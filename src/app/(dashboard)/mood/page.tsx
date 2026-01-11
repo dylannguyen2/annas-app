@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { formatDate, formatDisplayDate } from '@/lib/utils/dates'
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { PanicButton } from '@/components/panic-button'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameMonth, isToday, isFuture } from 'date-fns'
 
 const MOOD_EMOJIS: Record<number, string> = {
+  0: '😰',
   1: '😢',
   2: '😕',
   3: '😐',
@@ -18,6 +20,7 @@ const MOOD_EMOJIS: Record<number, string> = {
 }
 
 const MOOD_COLORS: Record<number, string> = {
+  0: 'bg-red-200 dark:bg-red-800/40',
   1: 'bg-red-100 dark:bg-red-900/30',
   2: 'bg-orange-100 dark:bg-orange-900/30',
   3: 'bg-yellow-100 dark:bg-yellow-900/30',
@@ -57,11 +60,14 @@ export default function MoodPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Mood</h2>
-        <p className="text-muted-foreground">
-          Track how you&apos;re feeling each day
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Mood</h2>
+          <p className="text-muted-foreground">
+            Track how you&apos;re feeling each day
+          </p>
+        </div>
+        <PanicButton />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -127,13 +133,13 @@ export default function MoodPage() {
                     disabled={isFutureDay}
                     className={`
                       aspect-square rounded-lg flex items-center justify-center transition-all text-sm
-                      ${moodEntry?.mood ? MOOD_COLORS[moodEntry.mood] : 'bg-secondary/30'}
+                      ${moodEntry?.mood !== undefined && moodEntry.mood !== null ? MOOD_COLORS[moodEntry.mood] : 'bg-secondary/30'}
                       ${isCurrentDay ? 'ring-1 ring-primary' : ''}
                       ${isFutureDay ? 'opacity-30 cursor-not-allowed' : 'hover:scale-105 cursor-pointer'}
                       ${selectedDate && formatDate(selectedDate) === dateStr ? 'ring-2 ring-primary' : ''}
                     `}
                   >
-                    {moodEntry?.mood ? MOOD_EMOJIS[moodEntry.mood] : <span className="text-[10px] text-muted-foreground">{format(date, 'd')}</span>}
+                    {moodEntry?.mood !== undefined && moodEntry.mood !== null ? MOOD_EMOJIS[moodEntry.mood] : <span className="text-[10px] text-muted-foreground">{format(date, 'd')}</span>}
                   </button>
                 )
               })}
@@ -163,7 +169,7 @@ export default function MoodPage() {
                     className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors w-full text-left"
                   >
                     <span className="text-lg">
-                      {mood.mood ? MOOD_EMOJIS[mood.mood] : '❓'}
+                      {mood.mood !== undefined && mood.mood !== null ? MOOD_EMOJIS[mood.mood] : '❓'}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-xs">

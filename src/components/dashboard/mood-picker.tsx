@@ -13,6 +13,7 @@ import { CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
 
 const MOOD_OPTIONS = [
+  { value: 0, emoji: '😰', label: 'Panic', color: '#dc2626' },
   { value: 1, emoji: '😢', label: 'Awful', color: '#ef4444' },
   { value: 2, emoji: '😕', label: 'Bad', color: '#f97316' },
   { value: 3, emoji: '😐', label: 'Okay', color: '#eab308' },

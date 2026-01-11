@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/layout/layout-client'
 import { useFeatureVisibility } from '@/hooks/use-feature-visibility'
+import { useShareView, isPageAllowed } from '@/lib/share-view/context'
 import {
   LayoutDashboard,
   CheckSquare,
@@ -21,6 +22,9 @@ import {
   BookOpen,
   ListTodo,
   Clapperboard,
+  Wallet,
+  Gift,
+  ShoppingCart,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -38,6 +42,8 @@ export const navGroups = [
       { name: 'Tasks', href: '/todos', icon: ListTodo },
       { name: 'Mood', href: '/mood', icon: Smile },
       { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
+      { name: 'Grocery', href: '/grocery', icon: ShoppingCart },
+      { name: 'Budget', href: '/budget', icon: Wallet },
     ],
   },
   {
@@ -45,6 +51,7 @@ export const navGroups = [
     items: [
       { name: 'Books', href: '/books', icon: BookOpen },
       { name: 'Movies & TV', href: '/media', icon: Clapperboard },
+      { name: 'Wishlist', href: '/wishlist', icon: Gift },
     ],
   },
   {
@@ -68,6 +75,13 @@ export function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, toggleSidebar } = useSidebar()
   const { isFeatureVisible } = useFeatureVisibility()
+  const { isShareView, allowedPages } = useShareView()
+
+  const isItemVisible = (href: string) => {
+    if (!isFeatureVisible(href)) return false
+    if (isShareView && !isPageAllowed(allowedPages, href)) return false
+    return true
+  }
 
   return (
     <aside 
@@ -97,7 +111,7 @@ export function Sidebar() {
         <div className="mt-6 flex-grow flex flex-col px-3">
           <nav className="flex-1 space-y-6">
             {navGroups.map((group) => {
-              const visibleItems = group.items.filter(item => isFeatureVisible(item.href))
+              const visibleItems = group.items.filter(item => isItemVisible(item.href))
               if (visibleItems.length === 0) return null
               
               return (
@@ -147,31 +161,33 @@ export function Sidebar() {
         </div>
 
         <div className="p-3 mt-auto space-y-2">
-          <Link
-            href="/settings"
-            className={cn(
-              'group flex items-center py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
-              isCollapsed ? "justify-center px-2" : "px-3",
-              pathname === '/settings'
-                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            )}
-            title={isCollapsed ? 'Settings' : undefined}
-          >
-            <Settings
+          {!isShareView && (
+            <Link
+              href="/settings"
               className={cn(
-                'h-[18px] w-[18px] flex-shrink-0',
-                !isCollapsed && "mr-3",
-                pathname === '/settings' ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
+                'group flex items-center py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
+                isCollapsed ? "justify-center px-2" : "px-3",
+                pathname === '/settings'
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
-            />
-            <span className={cn(
-              "whitespace-nowrap transition-all duration-300",
-              isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"
-            )}>
-              Settings
-            </span>
-          </Link>
+              title={isCollapsed ? 'Settings' : undefined}
+            >
+              <Settings
+                className={cn(
+                  'h-[18px] w-[18px] flex-shrink-0',
+                  !isCollapsed && "mr-3",
+                  pathname === '/settings' ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
+                )}
+              />
+              <span className={cn(
+                "whitespace-nowrap transition-all duration-300",
+                isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"
+              )}>
+                Settings
+              </span>
+            </Link>
+          )}
 
           <Button
             variant="ghost"

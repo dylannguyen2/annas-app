@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useShareView, isPageAllowed } from '@/lib/share-view/context'
 import {
   LayoutDashboard,
   CheckSquare,
@@ -20,18 +21,22 @@ import {
   BookOpen,
   ListTodo,
   Clapperboard,
+  Wallet,
+  ShoppingCart,
 } from 'lucide-react'
 
-const mainNav = [
+const mainNavItems = [
   { name: 'Home', href: '/', icon: LayoutDashboard },
   { name: 'Habits', href: '/habits', icon: CheckSquare },
   { name: 'Mood', href: '/mood', icon: Smile },
   { name: 'Health', href: '/health', icon: Heart },
 ]
 
-const moreNav = [
+const moreNavItems = [
   { name: 'Tasks', href: '/todos', icon: ListTodo },
   { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
+  { name: 'Grocery', href: '/grocery', icon: ShoppingCart },
+  { name: 'Budget', href: '/budget', icon: Wallet },
   { name: 'Books', href: '/books', icon: BookOpen },
   { name: 'Media', href: '/media', icon: Clapperboard },
   { name: 'Workouts', href: '/workouts', icon: Dumbbell },
@@ -45,6 +50,18 @@ export function MobileNav() {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const { isShareView, allowedPages } = useShareView()
+
+  const filterByShareView = (items: typeof mainNavItems) => {
+    if (!isShareView) return items
+    return items.filter(item => {
+      if (item.href === '/settings') return false
+      return isPageAllowed(allowedPages, item.href)
+    })
+  }
+
+  const mainNav = filterByShareView(mainNavItems)
+  const moreNav = filterByShareView(moreNavItems)
 
   const isMoreActive = moreNav.some(item => pathname === item.href)
 

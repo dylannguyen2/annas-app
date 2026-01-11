@@ -11,6 +11,7 @@ const PUBLIC_ROUTES = [
   '/pricing',
   '/api/webhooks',
   '/demo',
+  '/share',
 ]
 
 function isPublicRoute(pathname: string): boolean {
@@ -64,6 +65,35 @@ export async function updateSession(request: NextRequest) {
 
     if (demoSession) {
       return supabaseResponse
+    }
+  }
+
+  const shareToken = request.cookies.get('share_token')?.value
+  const shareOwnerId = request.cookies.get('share_owner_id')?.value
+
+  if (shareToken && shareOwnerId) {
+    const { data: shareLink } = await supabase
+      .from('share_links')
+      .select('*')
+      .eq('token', shareToken)
+      .eq('owner_id', shareOwnerId)
+      .single()
+
+    if (shareLink) {
+      const isExpired = shareLink.expires_at && new Date(shareLink.expires_at) < new Date()
+      if (!isExpired) {
+        const isAllowedPage = shareLink.allowed_pages.some((page: string) => 
+          pathname === page || pathname.startsWith(page + '/')
+        )
+        
+        if (isAllowedPage || pathname === '/') {
+          return supabaseResponse
+        }
+        
+        const url = request.nextUrl.clone()
+        url.pathname = shareLink.allowed_pages[0] || '/'
+        return NextResponse.redirect(url)
+      }
     }
   }
 

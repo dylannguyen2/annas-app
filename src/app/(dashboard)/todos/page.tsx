@@ -15,6 +15,143 @@ import type { Todo, TodoQuadrant } from '@/types/database'
 
 type ViewMode = 'matrix' | 'quick'
 
+function TodoItemRow({
+  todo,
+  isTodayTask,
+  hasDueDate,
+  onToggle,
+  onUpdate,
+  onEdit,
+  onDelete,
+  completed = false,
+}: {
+  todo: Todo
+  isTodayTask: boolean
+  hasDueDate: boolean
+  onToggle: (id: string) => void
+  onUpdate: (title: string) => void
+  onEdit: () => void
+  onDelete: () => void
+  completed?: boolean
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedTitle, setEditedTitle] = useState(todo.title)
+
+  const handleTitleClick = () => {
+    setEditedTitle(todo.title)
+    setIsEditing(true)
+  }
+
+  const handleSave = () => {
+    const trimmed = editedTitle.trim()
+    if (trimmed && trimmed !== todo.title) {
+      onUpdate(trimmed)
+    } else {
+      setEditedTitle(todo.title)
+    }
+    setIsEditing(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    } else if (e.key === 'Escape') {
+      setEditedTitle(todo.title)
+      setIsEditing(false)
+    }
+  }
+
+  return (
+    <div
+      className={cn(
+        "group flex items-center gap-4 p-4 rounded-xl transition-all duration-200 animate-in slide-in-from-top-2 fade-in",
+        completed 
+          ? "bg-green-50/50 dark:bg-green-950/20 hover:bg-green-100/50 dark:hover:bg-green-950/30"
+          : "bg-card hover:bg-accent/50 border border-border hover:border-primary/20"
+      )}
+    >
+      <button
+        onClick={() => onToggle(todo.id)}
+        className={cn(
+          "flex-shrink-0 h-7 w-7 rounded-full transition-all cursor-pointer",
+          completed
+            ? "bg-green-500 text-white flex items-center justify-center hover:bg-green-600 hover:scale-110"
+            : "border-2 border-muted-foreground/30 hover:border-primary hover:bg-primary/10"
+        )}
+      >
+        {completed && <Check className="h-4 w-4" strokeWidth={3} />}
+      </button>
+      <div className="flex-1 flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={handleKeyDown}
+              autoFocus
+              className={cn(
+                "text-lg font-medium bg-transparent border-none outline-none focus:ring-0 p-0 w-full",
+                completed && "text-muted-foreground"
+              )}
+            />
+          ) : (
+            <span 
+              onClick={handleTitleClick}
+              className={cn(
+                "text-lg font-medium cursor-text",
+                completed && "text-muted-foreground line-through"
+              )}
+            >
+              {todo.title}
+            </span>
+          )}
+          <span className={cn(
+            "text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0",
+            isTodayTask 
+              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
+              : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+            completed && "opacity-60"
+          )}>
+            {isTodayTask ? 'Today' : 'Week'}
+          </span>
+        </div>
+        {hasDueDate && (
+          <div className={cn(
+            "flex items-center gap-1 text-xs text-muted-foreground",
+            completed && "opacity-60"
+          )}>
+            <Calendar className="h-3 w-3" />
+            <span>Due {new Date(todo.due_date!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+          onClick={onEdit}
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className={cn(
+            "h-9 w-9 text-muted-foreground rounded-lg cursor-pointer",
+            completed ? "hover:text-destructive" : "hover:text-destructive hover:bg-destructive/10"
+          )}
+          onClick={onDelete}
+        >
+          <Trash2 className="h-5 w-5" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 const QUADRANTS = {
   do_first: {
     title: 'Do First',
@@ -407,54 +544,28 @@ function QuickEntryView({
                   }
 
                   return (
-                    <div
+                    <TodoItemRow
                       key={todo.id}
-                      className="group flex items-center gap-4 p-4 rounded-xl bg-card hover:bg-accent/50 border border-border hover:border-primary/20 transition-all duration-200 animate-in slide-in-from-top-2 fade-in"
-                    >
-                      <button
-                        onClick={() => handleToggle(todo.id)}
-                        className="flex-shrink-0 h-7 w-7 rounded-full border-2 border-muted-foreground/30 hover:border-primary hover:bg-primary/10 transition-all cursor-pointer"
-                      />
-                      <div className="flex-1 flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-medium">
-                            {todo.title}
-                          </span>
-                          <span className={cn(
-                            "text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full",
-                            isTodayTask 
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
-                              : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                          )}>
-                            {isTodayTask ? 'Today' : 'Week'}
-                          </span>
-                        </div>
-                        {hasDueDate && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>Due {new Date(todo.due_date!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
-                          onClick={() => handleEdit(todo)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
-                          onClick={() => handleDelete(todo.id)}
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </div>
+                      todo={todo}
+                      isTodayTask={isTodayTask}
+                      hasDueDate={!!hasDueDate}
+                      onToggle={handleToggle}
+                      onUpdate={async (title) => {
+                        setOptimisticTodos(prev => prev.map(t => 
+                          t.id === todo.id ? { ...t, title } : t
+                        ))
+                        try {
+                          await updateTodo(todo.id, { title })
+                        } catch (error) {
+                          console.error('Failed to update todo:', error)
+                          setOptimisticTodos(prev => prev.map(t => 
+                            t.id === todo.id ? todo : t
+                          ))
+                        }
+                      }}
+                      onEdit={() => handleEdit(todo)}
+                      onDelete={() => handleDelete(todo.id)}
+                    />
                   )
                 })}
               </div>
@@ -489,56 +600,29 @@ function QuickEntryView({
                   const isTodayTask = isToday(todo.due_date)
                   const hasDueDate = todo.due_date && !isToday(todo.due_date) && !isThisWeek(todo.due_date)
                   return (
-                    <div
+                    <TodoItemRow
                       key={todo.id}
-                      className="group flex items-center gap-4 p-4 rounded-xl bg-green-50/50 dark:bg-green-950/20 hover:bg-green-100/50 dark:hover:bg-green-950/30 transition-all duration-200"
-                    >
-                      <button
-                        onClick={() => handleToggle(todo.id)}
-                        className="flex-shrink-0 h-7 w-7 rounded-full bg-green-500 text-white flex items-center justify-center transition-all cursor-pointer hover:bg-green-600 hover:scale-110"
-                      >
-                        <Check className="h-4 w-4" strokeWidth={3} />
-                      </button>
-                      <div className="flex-1 flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg text-muted-foreground line-through">
-                            {todo.title}
-                          </span>
-                          <span className={cn(
-                            "text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full opacity-60",
-                            isTodayTask 
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
-                              : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                          )}>
-                            {isTodayTask ? 'Today' : 'Week'}
-                          </span>
-                        </div>
-                        {hasDueDate && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground opacity-60">
-                            <Calendar className="h-3 w-3" />
-                            <span>Due {new Date(todo.due_date!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
-                          onClick={() => handleEdit(todo)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9 text-muted-foreground hover:text-destructive rounded-lg cursor-pointer"
-                          onClick={() => handleDelete(todo.id)}
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </div>
+                      todo={todo}
+                      isTodayTask={isTodayTask}
+                      hasDueDate={!!hasDueDate}
+                      completed
+                      onToggle={handleToggle}
+                      onUpdate={async (title) => {
+                        setOptimisticTodos(prev => prev.map(t => 
+                          t.id === todo.id ? { ...t, title } : t
+                        ))
+                        try {
+                          await updateTodo(todo.id, { title })
+                        } catch (error) {
+                          console.error('Failed to update todo:', error)
+                          setOptimisticTodos(prev => prev.map(t => 
+                            t.id === todo.id ? todo : t
+                          ))
+                        }
+                      }}
+                      onEdit={() => handleEdit(todo)}
+                      onDelete={() => handleDelete(todo.id)}
+                    />
                   )
                 })}
               </div>
@@ -550,10 +634,126 @@ function QuickEntryView({
   )
 }
 
+function MatrixTodoItem({
+  todo,
+  onToggle,
+  onUpdate,
+  onEdit,
+  onDelete,
+}: {
+  todo: Todo
+  onToggle: () => void
+  onUpdate: (title: string) => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedTitle, setEditedTitle] = useState(todo.title)
+
+  const handleTitleClick = () => {
+    if (!todo.completed) {
+      setEditedTitle(todo.title)
+      setIsEditing(true)
+    }
+  }
+
+  const handleSave = () => {
+    const trimmed = editedTitle.trim()
+    if (trimmed && trimmed !== todo.title) {
+      onUpdate(trimmed)
+    } else {
+      setEditedTitle(todo.title)
+    }
+    setIsEditing(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    } else if (e.key === 'Escape') {
+      setEditedTitle(todo.title)
+      setIsEditing(false)
+    }
+  }
+
+  return (
+    <li className="group flex items-center gap-3 p-4 hover:bg-accent/50 transition-colors duration-200">
+      <Checkbox
+        checked={todo.completed}
+        onCheckedChange={onToggle}
+        className="cursor-pointer"
+      />
+      <div className="flex-1 min-w-0">
+        {isEditing ? (
+          <input
+            type="text"
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="text-sm font-medium bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
+          />
+        ) : (
+          <p 
+            onClick={handleTitleClick}
+            className={cn(
+              "text-sm font-medium leading-normal transition-all duration-200",
+              todo.completed 
+                ? "text-muted-foreground line-through opacity-60 cursor-default" 
+                : "cursor-text"
+            )}
+          >
+            {todo.title}
+          </p>
+        )}
+        {todo.description && (
+          <p className={cn(
+            "text-xs text-muted-foreground line-clamp-2 mt-1",
+            todo.completed && "opacity-60"
+          )}>
+            {todo.description}
+          </p>
+        )}
+        {todo.due_date && (
+          <div className={cn(
+            "flex items-center gap-1 text-[10px] text-muted-foreground mt-1",
+            todo.completed && "opacity-60"
+          )}>
+            <Calendar className="h-3 w-3" />
+            <span>{new Date(todo.due_date).toLocaleDateString()}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
+          onClick={onEdit}
+        >
+          <Pencil className="h-4 w-4" />
+          <span className="sr-only">Edit task</span>
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+          onClick={onDelete}
+        >
+          <Trash2 className="h-4 w-4" />
+          <span className="sr-only">Delete task</span>
+        </Button>
+      </div>
+    </li>
+  )
+}
+
 function MatrixView({
   todos,
   getTodosByQuadrant,
   toggleComplete,
+  updateTodo,
   deleteTodo,
   onAddClick,
   onEditClick
@@ -561,6 +761,7 @@ function MatrixView({
   todos: Todo[]
   getTodosByQuadrant: (quadrant: TodoQuadrant) => Todo[]
   toggleComplete: (id: string) => Promise<Todo | undefined>
+  updateTodo: (id: string, data: Partial<Todo>) => Promise<Todo>
   deleteTodo: (id: string) => Promise<void>
   onAddClick: (quadrant: TodoQuadrant) => void
   onEditClick: (todo: Todo) => void
@@ -599,64 +800,14 @@ function MatrixView({
               ) : (
                 <ul className="divide-y divide-border/50 max-h-[400px] overflow-y-auto">
                   {quadrantTodos.map((todo) => (
-                    <li 
-                      key={todo.id} 
-                      className="group flex items-center gap-3 p-4 hover:bg-accent/50 transition-colors duration-200"
-                    >
-                      <Checkbox
-                        checked={todo.completed}
-                        onCheckedChange={() => toggleComplete(todo.id)}
-                        className="cursor-pointer"
-                      />
-                      <div 
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => onEditClick(todo)}
-                      >
-                        <p className={cn(
-                          "text-sm font-medium leading-normal transition-all duration-200",
-                          todo.completed && "text-muted-foreground line-through opacity-60"
-                        )}>
-                          {todo.title}
-                        </p>
-                        {todo.description && (
-                          <p className={cn(
-                            "text-xs text-muted-foreground line-clamp-2 mt-1",
-                            todo.completed && "opacity-60"
-                          )}>
-                            {todo.description}
-                          </p>
-                        )}
-                        {todo.due_date && (
-                          <div className={cn(
-                            "flex items-center gap-1 text-[10px] text-muted-foreground mt-1",
-                            todo.completed && "opacity-60"
-                          )}>
-                            <Calendar className="h-3 w-3" />
-                            <span>{new Date(todo.due_date).toLocaleDateString()}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
-                          onClick={() => onEditClick(todo)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Edit task</span>
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                          onClick={() => deleteTodo(todo.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete task</span>
-                        </Button>
-                      </div>
-                    </li>
+                    <MatrixTodoItem
+                      key={todo.id}
+                      todo={todo}
+                      onToggle={() => toggleComplete(todo.id)}
+                      onUpdate={(title) => updateTodo(todo.id, { title })}
+                      onEdit={() => onEditClick(todo)}
+                      onDelete={() => deleteTodo(todo.id)}
+                    />
                   ))}
                 </ul>
               )}
@@ -839,6 +990,7 @@ export default function TodosPage() {
           todos={todos}
           getTodosByQuadrant={getTodosByQuadrant}
           toggleComplete={toggleComplete}
+          updateTodo={updateTodo}
           deleteTodo={deleteTodo}
           onAddClick={handleOpenDialog}
           onEditClick={handleOpenEditDialog}

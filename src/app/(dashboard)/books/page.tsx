@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useBooks, type Book, type SearchResult, type BookStatus } from '@/hooks/use-books'
+import { useBooks, type Book, type SearchResult, type BookStatus, type BookFormat } from '@/hooks/use-books'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -41,6 +41,9 @@ import {
   ArrowUpDown,
   X,
   ArrowLeft,
+  Headphones,
+  Smartphone,
+  BookText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -50,6 +53,62 @@ const TABS = [
   { id: 'reading', label: 'Reading', icon: BookOpen },
   { id: 'finished', label: 'Finished', icon: CheckCircle2 },
 ] as const
+
+const FORMATS = [
+  { id: 'book', label: 'Book', icon: BookText, shortLabel: 'Book' },
+  { id: 'ebook', label: 'E-book', icon: Smartphone, shortLabel: 'E-book' },
+  { id: 'audiobook', label: 'Audio', icon: Headphones, shortLabel: 'Audio' },
+] as const
+
+function FormatSelector({ 
+  value, 
+  onChange,
+  compact = false 
+}: { 
+  value: BookFormat
+  onChange: (format: BookFormat) => void
+  compact?: boolean
+}) {
+  return (
+    <div className={cn("flex gap-1", compact ? "" : "w-full")}>
+      {FORMATS.map((format) => {
+        const Icon = format.icon
+        const isSelected = value === format.id
+        return (
+          <button
+            key={format.id}
+            type="button"
+            onClick={() => onChange(format.id as BookFormat)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg border transition-all cursor-pointer",
+              compact 
+                ? "px-2 py-1 text-[10px]" 
+                : "flex-1 px-3 py-2 text-xs",
+              isSelected 
+                ? "border-primary bg-primary/10 text-primary" 
+                : "border-border/50 bg-secondary/20 hover:bg-secondary/40 text-muted-foreground"
+            )}
+          >
+            <Icon className={cn(compact ? "h-3 w-3" : "h-4 w-4")} />
+            <span className="font-medium">{compact ? format.shortLabel : format.label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function FormatBadge({ format }: { format: BookFormat }) {
+  const formatConfig = FORMATS.find(f => f.id === format)
+  if (!formatConfig || format === 'book') return null
+  
+  const Icon = formatConfig.icon
+  return (
+    <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-md bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-white text-[10px] font-medium">
+      <Icon className="h-3 w-3" />
+    </div>
+  )
+}
 
 function StarRating({ 
   rating = 0, 
@@ -121,6 +180,7 @@ function SearchBookDialog({
   const [finishedBook, setFinishedBook] = useState<SearchResult | null>(null)
   const [finishedRating, setFinishedRating] = useState(0)
   const [finishedDate, setFinishedDate] = useState(new Date().toISOString().split('T')[0])
+  const [finishedFormat, setFinishedFormat] = useState<BookFormat>('book')
 
   const [manualMode, setManualMode] = useState(false)
   const [manualBook, setManualBook] = useState({
@@ -128,6 +188,7 @@ function SearchBookDialog({
     author: '',
     cover_url: '',
     status: 'want_to_read' as BookStatus,
+    format: 'book' as BookFormat,
     rating: 0,
     finished_at: new Date().toISOString().split('T')[0]
   })
@@ -140,11 +201,13 @@ function SearchBookDialog({
         author: '',
         cover_url: '',
         status: 'want_to_read',
+        format: 'book',
         rating: 0,
         finished_at: new Date().toISOString().split('T')[0]
       })
       setQuery('')
       setResults([])
+      setFinishedFormat('book')
     }
   }, [open])
 
@@ -198,6 +261,7 @@ function SearchBookDialog({
       await addBook({
         ...finishedBook,
         status: 'finished',
+        format: finishedFormat,
         rating: finishedRating || null,
         finished_at: finishedDate ? new Date(finishedDate).toISOString() : new Date().toISOString(),
         started_at: finishedDate ? new Date(finishedDate).toISOString() : new Date().toISOString(),
@@ -206,6 +270,7 @@ function SearchBookDialog({
       setFinishedBook(null)
       setFinishedRating(0)
       setFinishedDate(new Date().toISOString().split('T')[0])
+      setFinishedFormat('book')
       onOpenChange(false)
     } catch (error) {
       console.error(error)
@@ -227,6 +292,7 @@ function SearchBookDialog({
         author: manualBook.author,
         cover_url: manualBook.cover_url,
         status: manualBook.status,
+        format: manualBook.format,
       }
 
       if (manualBook.status === 'reading') {
@@ -328,6 +394,14 @@ function SearchBookDialog({
                     value={manualBook.cover_url}
                     onChange={(e) => setManualBook({ ...manualBook, cover_url: e.target.value })}
                     className="bg-secondary/20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Format</Label>
+                  <FormatSelector 
+                    value={manualBook.format} 
+                    onChange={(f) => setManualBook({ ...manualBook, format: f })} 
                   />
                 </div>
 
@@ -522,6 +596,11 @@ function SearchBookDialog({
               </div>
               
               <div className="space-y-2">
+                <Label className="text-sm">Format</Label>
+                <FormatSelector value={finishedFormat} onChange={setFinishedFormat} />
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-sm">Your Rating</Label>
                 <StarRating rating={finishedRating} onChange={setFinishedRating} />
               </div>
@@ -572,6 +651,7 @@ function BookCard({
   const [editOpen, setEditOpen] = useState(false)
   const [editStarted, setEditStarted] = useState(book.started_at ? book.started_at.split('T')[0] : '')
   const [editFinished, setEditFinished] = useState(book.finished_at ? book.finished_at.split('T')[0] : '')
+  const [editFormat, setEditFormat] = useState<BookFormat>(book.format || 'book')
 
   const handleStatusChange = async (newStatus: BookStatus) => {
     try {
@@ -604,19 +684,19 @@ function BookCard({
     }
   }
 
-  const handleSaveDates = async () => {
+  const handleSaveEdit = async () => {
     try {
-      const updates: Partial<Book> = {}
+      const updates: Partial<Book> = { format: editFormat }
       if (editStarted) updates.started_at = new Date(editStarted).toISOString()
       else updates.started_at = null
       if (editFinished) updates.finished_at = new Date(editFinished).toISOString()
       else updates.finished_at = null
       
       await updateBook(book.id, updates)
-      toast.success('Dates updated')
+      toast.success('Updated')
       setEditOpen(false)
     } catch (error) {
-      toast.error('Failed to update dates')
+      toast.error('Failed to update')
     }
   }
 
@@ -644,6 +724,8 @@ function BookCard({
             <BookOpen className="h-12 w-12 opacity-20" />
           </div>
         )}
+        
+        <FormatBadge format={book.format} />
         
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 p-4 backdrop-blur-[2px]">
           <DropdownMenu>
@@ -679,7 +761,11 @@ function BookCard({
               </PopoverTrigger>
               <PopoverContent className="w-72" align="center">
                 <div className="space-y-4">
-                  <h4 className="font-medium text-sm">Edit Dates</h4>
+                  <h4 className="font-medium text-sm">Edit Book</h4>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Format</Label>
+                    <FormatSelector value={editFormat} onChange={setEditFormat} compact />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="started" className="text-xs">Started Reading</Label>
                     <Input
@@ -700,7 +786,7 @@ function BookCard({
                       className="h-9"
                     />
                   </div>
-                  <Button onClick={handleSaveDates} size="sm" className="w-full">
+                  <Button onClick={handleSaveEdit} size="sm" className="w-full">
                     Save
                   </Button>
                 </div>
@@ -855,6 +941,7 @@ function formatDate(dateString: string | null): string {
 
 type SortOption = 'newest' | 'oldest' | 'rating_high' | 'rating_low' | 'title'
 type RatingFilter = 'all' | '5' | '4+' | '3+' | 'unrated'
+type FormatFilter = 'all' | 'book' | 'ebook' | 'audiobook'
 
 export default function BooksPage() {
   const { books, loading, searchBooks, addBook, updateBook, deleteBook } = useBooks()
@@ -862,6 +949,7 @@ export default function BooksPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all')
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -875,6 +963,10 @@ export default function BooksPage() {
         b.title.toLowerCase().includes(query) || 
         (b.author && b.author.toLowerCase().includes(query))
       )
+    }
+
+    if (formatFilter !== 'all') {
+      filtered = filtered.filter(b => (b.format || 'book') === formatFilter)
     }
 
     if (status === 'finished') {
@@ -1040,6 +1132,38 @@ export default function BooksPage() {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setSortBy('rating_low')} className={cn("cursor-pointer", sortBy === 'rating_low' && "bg-secondary")}>
                     Lowest Rated
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className={cn("h-8 gap-1 text-xs", formatFilter !== 'all' && "text-primary")}>
+                    {formatFilter === 'all' ? (
+                      <BookText className="h-3.5 w-3.5" />
+                    ) : formatFilter === 'audiobook' ? (
+                      <Headphones className="h-3.5 w-3.5" />
+                    ) : formatFilter === 'ebook' ? (
+                      <Smartphone className="h-3.5 w-3.5" />
+                    ) : (
+                      <BookText className="h-3.5 w-3.5" />
+                    )}
+                    <span className="hidden sm:inline">Format</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem onClick={() => setFormatFilter('all')} className={cn("cursor-pointer", formatFilter === 'all' && "bg-secondary")}>
+                    All Formats
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setFormatFilter('book')} className={cn("cursor-pointer", formatFilter === 'book' && "bg-secondary")}>
+                    <BookText className="h-3.5 w-3.5 mr-2" /> Books
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFormatFilter('ebook')} className={cn("cursor-pointer", formatFilter === 'ebook' && "bg-secondary")}>
+                    <Smartphone className="h-3.5 w-3.5 mr-2" /> E-books
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFormatFilter('audiobook')} className={cn("cursor-pointer", formatFilter === 'audiobook' && "bg-secondary")}>
+                    <Headphones className="h-3.5 w-3.5 mr-2" /> Audiobooks
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

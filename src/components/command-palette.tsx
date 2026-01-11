@@ -26,6 +26,7 @@ import {
   Settings,
   Plus,
   Search,
+  Wallet,
 } from 'lucide-react'
 
 const navigationItems = [
@@ -35,6 +36,7 @@ const navigationItems = [
   { name: 'Health', href: '/health', icon: Heart, keywords: ['garmin', 'steps', 'sleep'] },
   { name: 'Tasks', href: '/todos', icon: ListTodo, keywords: ['todo', 'eisenhower', 'matrix'] },
   { name: 'Meals', href: '/meals', icon: UtensilsCrossed, keywords: ['food', 'eat', 'nutrition'] },
+  { name: 'Budget', href: '/budget', icon: Wallet, keywords: ['money', 'expenses', 'income', 'finance'] },
   { name: 'Books', href: '/books', icon: BookOpen, keywords: ['reading', 'library'] },
   { name: 'Workouts', href: '/workouts', icon: Dumbbell, keywords: ['exercise', 'gym', 'fitness'] },
   { name: 'Cycle', href: '/cycle', icon: Droplet, keywords: ['period', 'menstrual'] },
@@ -47,6 +49,7 @@ const quickActions = [
   { name: 'Log mood', href: '/mood', icon: Plus, keywords: ['add', 'new'] },
   { name: 'Add workout', href: '/workouts', icon: Plus, keywords: ['add', 'new', 'exercise'] },
   { name: 'Add meal', href: '/meals', icon: Plus, keywords: ['add', 'new', 'food'] },
+  { name: 'Add expense', href: '/budget', icon: Plus, keywords: ['add', 'new', 'money', 'spend'] },
   { name: 'Add book', href: '/books', icon: Plus, keywords: ['add', 'new', 'reading'] },
 ]
 

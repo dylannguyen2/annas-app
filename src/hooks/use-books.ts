@@ -3,6 +3,7 @@
 import useSWR, { mutate } from 'swr'
 
 export type BookStatus = 'want_to_read' | 'reading' | 'finished'
+export type BookFormat = 'book' | 'ebook' | 'audiobook'
 
 export interface Book {
   id: string
@@ -14,6 +15,7 @@ export interface Book {
   isbn: string | null
   page_count: number | null
   status: BookStatus
+  format: BookFormat
   rating: number | null
   notes: string | null
   started_at: string | null

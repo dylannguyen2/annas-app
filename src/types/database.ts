@@ -587,6 +587,164 @@ export interface Database {
           created_at?: string
         }
       }
+      share_links: {
+        Row: {
+          id: string
+          owner_id: string
+          token: string
+          name: string
+          allowed_pages: string[]
+          expires_at: string | null
+          last_accessed_at: string | null
+          access_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          owner_id: string
+          token: string
+          name: string
+          allowed_pages: string[]
+          expires_at?: string | null
+          last_accessed_at?: string | null
+          access_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          owner_id?: string
+          token?: string
+          name?: string
+          allowed_pages?: string[]
+          expires_at?: string | null
+          last_accessed_at?: string | null
+          access_count?: number
+          created_at?: string
+        }
+      }
+      wishlist_items: {
+        Row: {
+          id: string
+          user_id: string
+          url: string
+          title: string
+          image_url: string | null
+          price: string | null
+          currency: string | null
+          site_name: string | null
+          notes: string | null
+          purchased: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          url: string
+          title: string
+          image_url?: string | null
+          price?: string | null
+          currency?: string | null
+          site_name?: string | null
+          notes?: string | null
+          purchased?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          url?: string
+          title?: string
+          image_url?: string | null
+          price?: string | null
+          currency?: string | null
+          site_name?: string | null
+          notes?: string | null
+          purchased?: boolean
+          created_at?: string
+        }
+      }
+      grocery_items: {
+        Row: {
+          id: string
+          user_id: string
+          list_id: string | null
+          name: string
+          quantity: number
+          unit: string | null
+          category: string | null
+          checked: boolean
+          woolworths_id: string | null
+          woolworths_price: number | null
+          coles_id: string | null
+          coles_price: number | null
+          image_url: string | null
+          notes: string | null
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          list_id?: string | null
+          name: string
+          quantity?: number
+          unit?: string | null
+          category?: string | null
+          checked?: boolean
+          woolworths_id?: string | null
+          woolworths_price?: number | null
+          coles_id?: string | null
+          coles_price?: number | null
+          image_url?: string | null
+          notes?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          list_id?: string | null
+          name?: string
+          quantity?: number
+          unit?: string | null
+          category?: string | null
+          checked?: boolean
+          woolworths_id?: string | null
+          woolworths_price?: number | null
+          coles_id?: string | null
+          coles_price?: number | null
+          image_url?: string | null
+          notes?: string | null
+          position?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      grocery_lists: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -617,5 +775,21 @@ export type Book = Tables<'books'>
 export type Todo = Tables<'todos'>
 export type Subscription = Tables<'subscriptions'>
 export type DemoSession = Tables<'demo_sessions'>
+export type ShareLink = Tables<'share_links'>
+export type WishlistItem = Tables<'wishlist_items'>
+export type GroceryItem = Tables<'grocery_items'>
+export type GroceryList = Tables<'grocery_lists'>
 export type TodoQuadrant = 'do_first' | 'schedule' | 'delegate' | 'eliminate'
 export type SubscriptionStatus = 'trialing' | 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid' | 'paused'
+
+export interface SupermarketProduct {
+  id: string
+  store: 'woolworths' | 'coles'
+  name: string
+  brand: string | null
+  price: number | null
+  unitPrice: string | null
+  imageUrl: string | null
+  category: string | null
+  inStock: boolean
+}

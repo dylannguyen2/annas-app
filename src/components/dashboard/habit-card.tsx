@@ -25,6 +25,8 @@ interface HabitCardProps {
 
 export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete }: HabitCardProps) {
   const [loading, setLoading] = useState<string | null>(null)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editedName, setEditedName] = useState(habit.name)
   const weekDates = getWeekDates()
   const today = formatDate(new Date())
   const isCompletedToday = completedDates.includes(today)
@@ -40,6 +42,30 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete 
     }
   }
 
+  const handleNameClick = () => {
+    setEditedName(habit.name)
+    setIsEditingName(true)
+  }
+
+  const handleNameSave = () => {
+    const trimmed = editedName.trim()
+    if (trimmed && trimmed !== habit.name) {
+      onUpdate(habit.id, { name: trimmed, icon: habit.icon, color: habit.color })
+    } else {
+      setEditedName(habit.name)
+    }
+    setIsEditingName(false)
+  }
+
+  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleNameSave()
+    } else if (e.key === 'Escape') {
+      setEditedName(habit.name)
+      setIsEditingName(false)
+    }
+  }
+
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between mb-4">
@@ -51,7 +77,19 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete 
             {habit.icon}
           </div>
           <div>
-            <h3 className="font-medium">{habit.name}</h3>
+            {isEditingName ? (
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={handleNameSave}
+                onKeyDown={handleNameKeyDown}
+                autoFocus
+                className="font-medium bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
+              />
+            ) : (
+              <h3 onClick={handleNameClick} className="font-medium cursor-text">{habit.name}</h3>
+            )}
             {streak > 0 && (
               <div className="flex items-center gap-1 text-sm text-orange-500">
                 <Flame className="h-3 w-3" />

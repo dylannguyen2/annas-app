@@ -13,6 +13,7 @@ import { useTheme } from 'next-themes'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useFeatureVisibility } from '@/hooks/use-feature-visibility'
 import { navGroups } from '@/components/layout/sidebar'
+import ShareLinksCard from '@/components/settings/share-links-card'
 import useSWR from 'swr'
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -391,6 +392,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <ShareLinksCard />
 
       <Card>
         <CardHeader>
