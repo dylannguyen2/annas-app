@@ -108,7 +108,7 @@ export default function WorkoutsPage() {
   }
 
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
   
   const calendarRef = useRef<HTMLDivElement>(null)
   const detailsRef = useRef<HTMLDivElement>(null)
@@ -243,19 +243,19 @@ export default function WorkoutsPage() {
           />
           <Button variant="outline" size="sm" onClick={handleImportClick} disabled={importing}>
             {importing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="h-4 w-4" />
             )}
-            {importing ? 'Importing...' : 'Import CSV'}
+            {importing ? 'Importing...' : 'Import'}
           </Button>
           <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
             {syncing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
+              <RefreshCw className="h-4 w-4" />
             )}
-            {syncing ? 'Syncing...' : 'Sync Garmin'}
+            {syncing ? 'Syncing...' : 'Sync'}
           </Button>
           <WorkoutForm onSubmit={createWorkout} />
         </div>
@@ -395,7 +395,7 @@ export default function WorkoutsPage() {
                     <div className="mt-4">
                       <WorkoutForm 
                         onSubmit={createWorkout} 
-                        trigger={<Button variant="outline" size="sm">Log Workout</Button>}
+                        trigger={<Button variant="outline" size="sm">Log</Button>}
                       />
                     </div>
                   </div>
@@ -543,11 +543,11 @@ export default function WorkoutsPage() {
               <div className="flex justify-center gap-3">
                 <Button variant="outline" onClick={handleSync} disabled={syncing}>
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Sync Garmin
+                  Sync
                 </Button>
                 <WorkoutForm
                   onSubmit={createWorkout}
-                  trigger={<Button>Log Workout</Button>}
+                  trigger={<Button>Log</Button>}
                 />
               </div>
             </div>

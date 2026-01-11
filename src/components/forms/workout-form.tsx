@@ -114,8 +114,8 @@ export function WorkoutForm({ onSubmit, trigger, initialData }: WorkoutFormProps
       <DialogTrigger asChild>
         {trigger || (
           <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Log Workout
+            <Plus className="mr-1.5 h-4 w-4" />
+            Log
           </Button>
         )}
       </DialogTrigger>
