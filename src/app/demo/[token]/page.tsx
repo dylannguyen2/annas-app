@@ -51,9 +51,9 @@ export default function DemoPage() {
           setStatus('invalid')
           setErrorMessage(data.error || 'Invalid demo link')
         }
-      } catch {
+      } catch (err) {
         setStatus('invalid')
-        setErrorMessage('Something went wrong')
+        setErrorMessage(err instanceof Error ? err.message : 'Something went wrong')
       }
     }
     

@@ -10,6 +10,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Token required' }, { status: 400 })
     }
 
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Server misconfigured: missing SUPABASE_SERVICE_ROLE_KEY' 
+      }, { status: 500 })
+    }
+
+    if (!process.env.DEMO_ACCOUNT_PASSWORD) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Server misconfigured: missing DEMO_ACCOUNT_PASSWORD' 
+      }, { status: 500 })
+    }
+
     const supabase = getSupabaseAdmin()
 
     const { data: session, error: sessionError } = await supabase
