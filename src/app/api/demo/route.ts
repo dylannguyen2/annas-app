@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
+import { clearDemoAccountData } from '@/lib/demo'
 
 const DEMO_OWNER_UID = 'd87e8362-b65e-433c-903c-bc1b12765f49'
 
@@ -27,6 +29,8 @@ export async function POST() {
       url: `${process.env.NEXT_PUBLIC_APP_URL}/demo/${existingSession.token}`
     })
   }
+
+  await clearDemoAccountData()
 
   const token = randomBytes(16).toString('hex')
   const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -100,20 +104,13 @@ export async function DELETE() {
     return NextResponse.json({ error: 'No active demo session' }, { status: 404 })
   }
 
-  const tables = ['habits', 'habit_completions', 'moods', 'meals', 'books', 'todos', 'daily_entries']
-  
-  for (const table of tables) {
-    await supabase
-      .from(table)
-      .delete()
-      .eq('user_id', user.id)
-      .gte('created_at', session.started_at)
-  }
+  await clearDemoAccountData()
 
-  await supabase
+  const adminSupabase = getSupabaseAdmin()
+  await adminSupabase
     .from('demo_sessions')
     .update({ ended_at: new Date().toISOString() })
     .eq('id', session.id)
 
-  return NextResponse.json({ success: true, deleted_from: tables })
+  return NextResponse.json({ success: true })
 }

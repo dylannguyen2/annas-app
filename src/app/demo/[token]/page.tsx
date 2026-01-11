@@ -6,39 +6,61 @@ import { Heart, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 export default function DemoPage() {
   const params = useParams()
   const router = useRouter()
   const token = params.token as string
   
-  const [status, setStatus] = useState<'loading' | 'valid' | 'invalid'>('loading')
+  const [status, setStatus] = useState<'loading' | 'valid' | 'invalid' | 'signing-in'>('loading')
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string>('')
 
   useEffect(() => {
-    async function validateToken() {
+    async function validateAndSignIn() {
       try {
         const res = await fetch(`/api/demo/${token}`)
         const data = await res.json()
         
         if (data.valid) {
-          setStatus('valid')
+          setStatus('signing-in')
           setExpiresAt(data.expires_at)
-          document.cookie = `demo_token=${token}; path=/; max-age=${60 * 60 * 24}`
-          document.cookie = `demo_owner_id=${data.owner_id}; path=/; max-age=${60 * 60 * 24}`
-          setTimeout(() => router.push('/dashboard'), 1500)
+          
+          const signInRes = await fetch('/api/demo/signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+          })
+          
+          const signInData = await signInRes.json()
+          
+          if (signInData.success) {
+            setStatus('valid')
+            const supabase = createClient()
+            await supabase.auth.setSession({
+              access_token: signInData.access_token,
+              refresh_token: signInData.refresh_token
+            })
+            setTimeout(() => router.push('/dashboard'), 1000)
+          } else {
+            setStatus('invalid')
+            setErrorMessage(signInData.error || 'Failed to sign in')
+          }
         } else {
           setStatus('invalid')
+          setErrorMessage(data.error || 'Invalid demo link')
         }
       } catch {
         setStatus('invalid')
+        setErrorMessage('Something went wrong')
       }
     }
     
-    validateToken()
+    validateAndSignIn()
   }, [token, router])
 
-  if (status === 'loading') {
+  if (status === 'loading' || status === 'signing-in') {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex flex-col items-center justify-center p-4">
         <div className="flex items-center gap-3 mb-4">
@@ -47,7 +69,7 @@ export default function DemoPage() {
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Validating demo link...</span>
+          <span>{status === 'loading' ? 'Validating demo link...' : 'Setting up demo session...'}</span>
         </div>
       </div>
     )
@@ -63,7 +85,7 @@ export default function DemoPage() {
             </div>
             <h1 className="text-xl font-semibold">Demo Link Invalid</h1>
             <p className="text-muted-foreground">
-              This demo link has expired or is no longer valid.
+              {errorMessage || 'This demo link has expired or is no longer valid.'}
             </p>
             <Link href="/">
               <Button className="mt-4">Go to Homepage</Button>
