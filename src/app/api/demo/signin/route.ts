@@ -2,6 +2,14 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { DEMO_ACCOUNT_EMAIL, DEMO_ACCOUNT_PASSWORD } from '@/lib/demo'
 
+export async function GET() {
+  return NextResponse.json({
+    status: 'ok',
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    hasDemoPassword: !!process.env.DEMO_ACCOUNT_PASSWORD,
+  })
+}
+
 export async function POST(request: Request) {
   try {
     const { token } = await request.json()
