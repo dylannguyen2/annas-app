@@ -90,7 +90,7 @@ export function Sidebar() {
         isCollapsed ? "md:w-20" : "md:w-64"
       )}
     >
-      <div className="flex flex-col flex-grow pt-6 bg-card/50 backdrop-blur-xl border-r border-border/50 overflow-y-auto overflow-x-hidden">
+      <div className="flex flex-col flex-grow pt-6 bg-card/50 backdrop-blur-xl border-r border-border/50 overflow-y-auto overflow-x-hidden scrollbar-none">
         <div className="px-4">
           <div className={cn(
             "flex items-center flex-shrink-0 transition-all duration-300",
