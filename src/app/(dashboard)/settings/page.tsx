@@ -70,9 +70,13 @@ export default function SettingsPage() {
 
   const handleStartDemo = async () => {
     setDemoLoading(true)
+    setError(null)
     try {
       const response = await fetch('/api/demo', { method: 'POST' })
       const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start demo')
+      }
       if (data.url) {
         mutateDemoSession({ active: true, ...data })
       }
@@ -85,8 +89,13 @@ export default function SettingsPage() {
 
   const handleEndDemo = async () => {
     setDemoLoading(true)
+    setError(null)
     try {
-      await fetch('/api/demo', { method: 'DELETE' })
+      const response = await fetch('/api/demo', { method: 'DELETE' })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to end demo')
+      }
       mutateDemoSession({ active: false })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to end demo')
@@ -374,6 +383,10 @@ export default function SettingsPage() {
                   </Button>
                 </div>
 
+                {error && (
+                  <p className="text-sm text-destructive">{error}</p>
+                )}
+
                 <p className="text-xs text-muted-foreground">
                   Ending the demo will delete all data created during this session.
                 </p>
@@ -383,6 +396,9 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">
                   Start a demo session to generate a shareable link. Anyone with the link can view your app for 24 hours. When you end the session, all data created during the demo will be deleted.
                 </p>
+                {error && (
+                  <p className="text-sm text-destructive">{error}</p>
+                )}
                 <Button
                   onClick={handleStartDemo}
                   disabled={demoLoading}

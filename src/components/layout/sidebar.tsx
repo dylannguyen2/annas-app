@@ -169,16 +169,16 @@ export function Sidebar() {
                           key={item.name}
                           href={item.href}
                           className={cn(
-                            'group relative flex items-center py-3 text-sm font-medium rounded-2xl transition-all duration-300 ease-out',
+                            'group relative flex items-center py-3 text-sm font-medium rounded-2xl transition-all duration-300 ease-out overflow-hidden',
                             isCollapsed ? "justify-center px-0 w-12 mx-auto" : "px-4 w-full",
                             isActive
-                              ? 'text-primary-foreground shadow-lg shadow-primary/25'
+                              ? 'text-primary-foreground'
                               : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-white/5 hover:text-foreground'
                           )}
                           title={isCollapsed ? item.name : undefined}
                         >
                           {isActive && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/90 rounded-2xl opacity-100 transition-opacity duration-300" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/90" />
                           )}
                           
                           <item.icon
@@ -215,16 +215,16 @@ export function Sidebar() {
             <Link
               href="/settings"
               className={cn(
-                'group relative flex items-center py-3 text-sm font-medium rounded-2xl transition-all duration-300',
+                'group relative flex items-center py-3 text-sm font-medium rounded-2xl transition-all duration-300 overflow-hidden',
                 isCollapsed ? "justify-center px-0 w-12 mx-auto" : "px-4",
                 pathname === '/settings'
-                  ? 'text-primary-foreground shadow-lg shadow-primary/25'
+                  ? 'text-primary-foreground'
                   : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-white/5 hover:text-foreground'
               )}
               title={isCollapsed ? 'Settings' : undefined}
             >
               {pathname === '/settings' && (
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/90 rounded-2xl" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/90" />
               )}
               <Settings
                 className={cn(
