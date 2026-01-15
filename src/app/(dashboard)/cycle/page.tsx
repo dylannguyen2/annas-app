@@ -9,7 +9,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { usePeriods } from '@/hooks/use-periods'
+import { useShareView } from '@/lib/share-view/context'
 import { Loader2, Droplet, Calendar as CalendarIcon, Heart, Sparkles, Trash2 } from 'lucide-react'
+import { PageSkeleton } from '@/components/dashboard/page-skeleton'
 import { formatDate } from '@/lib/utils/dates'
 
 const FLOW_OPTIONS = [
@@ -25,15 +27,16 @@ const SYMPTOM_OPTIONS = [
 ]
 
 export default function CyclePage() {
-  const { 
-    periodLogs, 
-    settings, 
-    loading, 
-    logPeriod, 
+  const { isShareView } = useShareView()
+  const {
+    periodLogs,
+    settings,
+    loading,
+    logPeriod,
     deletePeriodLog,
     cycleInfo,
     getPeriodLogForDate,
-    recentCycles 
+    recentCycles
   } = usePeriods()
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
@@ -145,85 +148,102 @@ export default function CyclePage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Cycle Tracker</h2>
-          <p className="text-muted-foreground text-sm">
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <Droplet className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Cycle Tracker</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
             Track your period and predict your cycle
           </p>
         </div>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-        <Card className="px-8">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-muted-foreground">Cycle Day</span>
-            <CalendarIcon className="h-3 w-3 text-muted-foreground" />
-          </div>
-          <div className="text-xl font-bold">
-            {cycleInfo.currentCycleDay ? `Day ${cycleInfo.currentCycleDay}` : '--'}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {cycleInfo.isOnPeriod ? 'On period' : 'Not on period'}
-          </p>
+      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <Card className="group hover:-translate-y-0.5 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Cycle Day</CardTitle>
+            <div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {cycleInfo.currentCycleDay ? `Day ${cycleInfo.currentCycleDay}` : '--'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {cycleInfo.isOnPeriod ? 'On period' : 'Not on period'}
+            </p>
+          </CardContent>
         </Card>
 
-        <Card className="px-8">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-muted-foreground">Next Period</span>
-            <Droplet className="h-3 w-3 text-muted-foreground" />
-          </div>
-          <div className="text-xl font-bold">
-            {cycleInfo.nextPeriodPrediction 
-              ? new Date(cycleInfo.nextPeriodPrediction).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
-              : '--'
-            }
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {cycleInfo.nextPeriodPrediction && (
-              <>
-                {Math.ceil((new Date(cycleInfo.nextPeriodPrediction).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days away
-              </>
-            )}
-          </p>
+        <Card className="group hover:-translate-y-0.5 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Next Period</CardTitle>
+            <div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
+              <Droplet className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {cycleInfo.nextPeriodPrediction 
+                ? new Date(cycleInfo.nextPeriodPrediction).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
+                : '--'
+              }
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {cycleInfo.nextPeriodPrediction && (
+                <>
+                  {Math.ceil((new Date(cycleInfo.nextPeriodPrediction).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days away
+                </>
+              )}
+            </p>
+          </CardContent>
         </Card>
 
-        <Card className="px-8">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-muted-foreground">Fertile Window</span>
-            <Heart className="h-3 w-3 text-muted-foreground" />
-          </div>
-          <div className="text-xl font-bold">
-            {cycleInfo.fertileWindowStart 
-              ? `${new Date(cycleInfo.fertileWindowStart).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}`
-              : '--'
-            }
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {cycleInfo.ovulationDay && (
-              <>Ovulation: {new Date(cycleInfo.ovulationDay).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}</>
-            )}
-          </p>
+        <Card className="group hover:-translate-y-0.5 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Fertile Window</CardTitle>
+            <div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
+              <Heart className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {cycleInfo.fertileWindowStart 
+                ? `${new Date(cycleInfo.fertileWindowStart).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}`
+                : '--'
+              }
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {cycleInfo.ovulationDay && (
+                <>Ovulation: {new Date(cycleInfo.ovulationDay).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}</>
+              )}
+            </p>
+          </CardContent>
         </Card>
 
-        <Card className="px-8">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-muted-foreground">Avg Cycle</span>
-            <Sparkles className="h-3 w-3 text-muted-foreground" />
-          </div>
-          <div className="text-xl font-bold">{settings.average_cycle_length} days</div>
-          <p className="text-xs text-muted-foreground">
-            Period: {settings.average_period_length} days
-          </p>
+        <Card className="group hover:-translate-y-0.5 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Cycle</CardTitle>
+            <div className="p-2 bg-primary/10 rounded-xl group-hover:bg-primary/15 transition-colors">
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{settings.average_cycle_length} days</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Period: {settings.average_period_length} days
+            </p>
+          </CardContent>
         </Card>
       </div>
 
@@ -260,79 +280,81 @@ export default function CyclePage() {
               </div>
             </div>
 
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full mt-3" size="sm" disabled={!selectedDate}>
-                  {existingLog ? 'Edit Log' : 'Log Period'}
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {selectedDate?.toLocaleDateString('en-AU', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Flow Intensity</Label>
+{!isShareView && (
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full mt-3" size="sm" disabled={!selectedDate}>
+                    {existingLog ? 'Edit Log' : 'Log Period'}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {selectedDate?.toLocaleDateString('en-AU', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Flow Intensity</Label>
+                      <div className="flex gap-2">
+                        {FLOW_OPTIONS.map(option => (
+                          <Button
+                            key={option.value}
+                            variant={selectedFlow === option.value ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSelectedFlow(selectedFlow === option.value ? null : option.value)}
+                          >
+                            {option.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Symptoms</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {SYMPTOM_OPTIONS.map(symptom => (
+                          <Badge
+                            key={symptom}
+                            variant={selectedSymptoms.includes(symptom) ? 'default' : 'outline'}
+                            className="cursor-pointer"
+                            onClick={() => toggleSymptom(symptom)}
+                          >
+                            {symptom}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Notes</Label>
+                      <Textarea
+                        placeholder="Any additional notes..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                      />
+                    </div>
+
                     <div className="flex gap-2">
-                      {FLOW_OPTIONS.map(option => (
-                        <Button
-                          key={option.value}
-                          variant={selectedFlow === option.value ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSelectedFlow(selectedFlow === option.value ? null : option.value)}
-                        >
-                          {option.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Symptoms</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {SYMPTOM_OPTIONS.map(symptom => (
-                        <Badge
-                          key={symptom}
-                          variant={selectedSymptoms.includes(symptom) ? 'default' : 'outline'}
-                          className="cursor-pointer"
-                          onClick={() => toggleSymptom(symptom)}
-                        >
-                          {symptom}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Notes</Label>
-                    <Textarea
-                      placeholder="Any additional notes..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button onClick={handleSave} disabled={saving} className="flex-1">
-                      {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Save
-                    </Button>
-                    {existingLog && (
-                      <Button variant="destructive" onClick={handleDelete} disabled={saving}>
-                        Delete
+                      <Button onClick={handleSave} disabled={saving} className="flex-1">
+                        {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save
                       </Button>
-                    )}
+                      {existingLog && (
+                        <Button variant="destructive" onClick={handleDelete} disabled={saving}>
+                          Delete
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            )}
           </CardContent>
         </Card>
 
@@ -384,15 +406,17 @@ export default function CyclePage() {
                   <CardTitle className="text-base">
                     {selectedDate.toLocaleDateString('en-AU', { month: 'long', day: 'numeric' })}
                   </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    onClick={handleDelete}
-                    disabled={saving}
-                  >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  </Button>
+{!isShareView && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={handleDelete}
+                      disabled={saving}
+                    >
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 pt-0">

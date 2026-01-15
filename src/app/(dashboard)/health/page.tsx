@@ -5,20 +5,22 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Moon, Footprints, Heart, RefreshCw, Loader2, AlertCircle } from 'lucide-react'
 import { useHealth } from '@/hooks/use-health'
+import { useShareView } from '@/lib/share-view/context'
 import { SleepChart, StepsChart, HeartRateChart } from '@/components/charts'
 import { HealthSkeleton } from '@/components/dashboard/health-skeleton'
 import Link from 'next/link'
 
 export default function HealthPage() {
-  const { 
-    healthData, 
-    garminStatus, 
-    loading, 
-    syncing, 
+  const { isShareView } = useShareView()
+  const {
+    healthData,
+    garminStatus,
+    loading,
+    syncing,
     error,
-    syncGarmin, 
-    getTodayHealth, 
-    formatSleepDuration 
+    syncGarmin,
+    getTodayHealth,
+    formatSleepDuration
   } = useHealth()
 
   const todayHealth = getTodayHealth
@@ -49,10 +51,17 @@ export default function HealthPage() {
 
   if (!garminStatus.connected) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Health</h2>
-          <p className="text-muted-foreground">Your Garmin health data</p>
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-primary/10 rounded-xl">
+                <Heart className="h-6 w-6 text-primary" />
+              </div>
+              <h1 className="text-4xl font-bold tracking-tight text-foreground">Health</h1>
+            </div>
+            <p className="text-muted-foreground text-lg">Your Garmin health data.</p>
+          </div>
         </div>
         
         <Card>
@@ -64,9 +73,11 @@ export default function HealthPage() {
                 Connect your Garmin account to see your health data
               </p>
             </div>
+{!isShareView && (
             <Button asChild>
               <Link href="/settings">Connect Garmin</Link>
             </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -76,25 +87,32 @@ export default function HealthPage() {
   const displayHealth = todayHealth || latestHealth
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Health</h2>
-          <p className="text-muted-foreground">
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <Heart className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Health</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
             {garminStatus.lastSync 
               ? `Last synced: ${new Date(garminStatus.lastSync).toLocaleString()}`
-              : 'Your Garmin health data'
+              : 'Your Garmin health data.'
             }
           </p>
         </div>
-        <Button variant="outline" onClick={handleSync} disabled={syncing}>
-          {syncing ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
-          {syncing ? 'Syncing...' : 'Sync Now'}
-        </Button>
+        {!isShareView && (
+          <Button variant="outline" onClick={handleSync} disabled={syncing}>
+            {syncing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {syncing ? 'Syncing...' : 'Sync Now'}
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -122,8 +140,8 @@ export default function HealthPage() {
         </TabsList>
 
         <TabsContent value="sleep" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
+          <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Duration</CardTitle>
               </CardHeader>
@@ -133,7 +151,7 @@ export default function HealthPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Deep Sleep</CardTitle>
               </CardHeader>
@@ -143,7 +161,7 @@ export default function HealthPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Light Sleep</CardTitle>
               </CardHeader>
@@ -153,7 +171,7 @@ export default function HealthPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">REM Sleep</CardTitle>
               </CardHeader>
@@ -175,8 +193,8 @@ export default function HealthPage() {
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
+          <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Steps</CardTitle>
               </CardHeader>
@@ -186,7 +204,7 @@ export default function HealthPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Distance</CardTitle>
               </CardHeader>
@@ -196,7 +214,7 @@ export default function HealthPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Calories</CardTitle>
               </CardHeader>
@@ -218,8 +236,8 @@ export default function HealthPage() {
         </TabsContent>
 
         <TabsContent value="heart" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
+          <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Resting HR</CardTitle>
               </CardHeader>
@@ -229,7 +247,7 @@ export default function HealthPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Average HR</CardTitle>
               </CardHeader>
@@ -239,7 +257,7 @@ export default function HealthPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Min HR</CardTitle>
               </CardHeader>
@@ -249,7 +267,7 @@ export default function HealthPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
               <CardHeader className="">
                 <CardTitle className="text-sm font-medium">Max HR</CardTitle>
               </CardHeader>

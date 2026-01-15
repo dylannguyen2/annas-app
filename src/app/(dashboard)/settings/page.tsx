@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useHealth } from '@/hooks/use-health'
-import { Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard, Eye, EyeOff, Share2, Copy, Trash2 } from 'lucide-react'
+import { Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard, Eye, EyeOff, Share2, Copy, Trash2, Settings } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useFeatureVisibility } from '@/hooks/use-feature-visibility'
@@ -162,12 +162,19 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-        <p className="text-muted-foreground">
-          Manage your account and preferences
-        </p>
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <Settings className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Settings</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Manage your account and preferences
+          </p>
+        </div>
       </div>
 
       <Card>

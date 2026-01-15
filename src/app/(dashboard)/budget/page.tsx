@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useShareView } from '@/lib/share-view/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TransactionForm } from '@/components/forms/transaction-form'
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Loader2, 
+  Loader2,
   TrendingUp, 
   TrendingDown, 
   Wallet, 
@@ -28,6 +29,7 @@ import {
   X,
   CalendarDays
 } from 'lucide-react'
+import { PageSkeleton } from '@/components/dashboard/page-skeleton'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isFuture, startOfWeek, endOfWeek, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 
@@ -42,14 +44,15 @@ const getProgressColor = (percent: number) => {
 }
 
 export default function BudgetPage() {
+  const { isShareView } = useShareView()
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
-  const { 
-    summary, 
-    loading, 
-    error, 
-    createTransaction, 
-    updateTransaction, 
-    deleteTransaction 
+  const {
+    summary,
+    loading,
+    error,
+    createTransaction,
+    updateTransaction,
+    deleteTransaction
   } = useBudgetSummary(currentMonth)
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
@@ -162,21 +165,22 @@ export default function BudgetPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   const isCurrentMonth = format(currentMonth, 'yyyy-MM') === format(new Date(), 'yyyy-MM')
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Budget</h2>
-          <p className="text-muted-foreground">Track your income and expenses</p>
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full page-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <Wallet className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Budget</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">Track your income and expenses.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="hidden lg:flex items-center gap-1 bg-secondary rounded-lg p-1">
@@ -217,30 +221,37 @@ export default function BudgetPage() {
               className="absolute inset-0 z-10 opacity-0 cursor-pointer"
             />
           </div>
-          <TransactionForm
-            onSubmit={handleCreateTransaction}
-            defaultType="expense"
-            trigger={
-              <Button variant="outline" size="sm" className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-300">
-                <Minus className="mr-1.5 h-4 w-4" />
-                Expense
-              </Button>
-            }
-          />
-          <TransactionForm
-            onSubmit={handleCreateTransaction}
-            defaultType="income"
-            trigger={
-              <Button variant="outline" size="sm" className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-300">
-                <Plus className="mr-1.5 h-4 w-4" />
-                Income
-              </Button>
-            }
-          />
+          {!isShareView && (
+            <TransactionForm
+              onSubmit={handleCreateTransaction}
+              defaultType="expense"
+              trigger={
+                <Button variant="outline" size="sm" className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-300">
+                  <span className="sm:hidden">-$</span>
+                  <Minus className="hidden sm:inline h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Expense</span>
+                </Button>
+              }
+            />
+          )}
+          {!isShareView && (
+            <TransactionForm
+              onSubmit={handleCreateTransaction}
+              defaultType="income"
+              trigger={
+                <Button variant="outline" size="sm" className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-300">
+                  <span className="sm:hidden">+$</span>
+                  <Plus className="hidden sm:inline h-4 w-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Income</span>
+                </Button>
+              }
+            />
+          )}
         </div>
       </div>
 
-      <form onSubmit={handleAiSubmit} className="relative">
+      {!isShareView && (
+        <form onSubmit={handleAiSubmit} className="relative">
         <div className="relative flex items-center">
           <Sparkles className="absolute left-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -264,7 +275,8 @@ export default function BudgetPage() {
             )}
           </Button>
         </div>
-      </form>
+        </form>
+      )}
 
       {error && (
         <Card className="border-destructive">
@@ -274,8 +286,8 @@ export default function BudgetPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
+      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-600" />
@@ -289,7 +301,7 @@ export default function BudgetPage() {
             <p className="text-xs text-muted-foreground">this month</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingDown className="h-4 w-4 text-red-600" />
@@ -303,7 +315,7 @@ export default function BudgetPage() {
             <p className="text-xs text-muted-foreground">this month</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <PiggyBank className="h-4 w-4 text-blue-600" />
@@ -317,7 +329,7 @@ export default function BudgetPage() {
             <p className="text-xs text-muted-foreground">income - expenses</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Wallet className="h-4 w-4 text-purple-600" />
@@ -454,18 +466,20 @@ export default function BudgetPage() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <p>No transactions on this day</p>
-                    <div className="flex justify-center gap-2 mt-3">
-                      <TransactionForm
-                        onSubmit={handleCreateTransaction}
-                        defaultType="expense"
-                        trigger={<Button variant="outline" size="sm"><Minus className="mr-1.5 h-3 w-3" />Expense</Button>}
-                      />
-                      <TransactionForm
-                        onSubmit={handleCreateTransaction}
-                        defaultType="income"
-                        trigger={<Button size="sm"><Plus className="mr-1.5 h-3 w-3" />Income</Button>}
-                      />
-                    </div>
+                    {!isShareView && (
+                      <div className="flex justify-center gap-2 mt-3">
+                        <TransactionForm
+                          onSubmit={handleCreateTransaction}
+                          defaultType="expense"
+                          trigger={<Button variant="outline" size="sm"><Minus className="mr-1.5 h-3 w-3" />Expense</Button>}
+                        />
+                        <TransactionForm
+                          onSubmit={handleCreateTransaction}
+                          defaultType="income"
+                          trigger={<Button size="sm"><Plus className="mr-1.5 h-3 w-3" />Income</Button>}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -580,34 +594,38 @@ export default function BudgetPage() {
                       <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                         {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
                       </span>
-                      <TransactionForm
-                        onSubmit={(data) => handleEditTransaction(tx.id, data)}
-                        defaultType={tx.type}
-                        initialData={{
-                          category: tx.category || undefined,
-                          type: tx.type,
-                          amount: tx.amount,
-                          description: tx.description || undefined,
-                          date: tx.date,
-                        }}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeleteTransaction(tx.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {!isShareView && (
+                        <TransactionForm
+                          onSubmit={(data) => handleEditTransaction(tx.id, data)}
+                          defaultType={tx.type}
+                          initialData={{
+                            category: tx.category || undefined,
+                            type: tx.type,
+                            amount: tx.amount,
+                            description: tx.description || undefined,
+                            date: tx.date,
+                          }}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          }
+                        />
+                      )}
+                      {!isShareView && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDeleteTransaction(tx.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )
@@ -618,28 +636,30 @@ export default function BudgetPage() {
               <div className="text-5xl mb-4">💸</div>
               <h3 className="text-lg font-semibold mb-2">No transactions yet</h3>
               <p className="text-muted-foreground mb-4">Start tracking your spending</p>
-              <div className="flex justify-center gap-2">
-                <TransactionForm
-                  onSubmit={handleCreateTransaction}
-                  defaultType="expense"
-                  trigger={
-                    <Button variant="outline">
-                      <Minus className="mr-1.5 h-4 w-4" />
-                      Add Expense
-                    </Button>
-                  }
-                />
-                <TransactionForm
-                  onSubmit={handleCreateTransaction}
-                  defaultType="income"
-                  trigger={
-                    <Button>
-                      <Plus className="mr-1.5 h-4 w-4" />
-                      Add Income
-                    </Button>
-                  }
-                />
-              </div>
+              {!isShareView && (
+                <div className="flex justify-center gap-2">
+                  <TransactionForm
+                    onSubmit={handleCreateTransaction}
+                    defaultType="expense"
+                    trigger={
+                      <Button variant="outline">
+                        <Minus className="mr-1.5 h-4 w-4" />
+                        Add Expense
+                      </Button>
+                    }
+                  />
+                  <TransactionForm
+                    onSubmit={handleCreateTransaction}
+                    defaultType="income"
+                    trigger={
+                      <Button>
+                        <Plus className="mr-1.5 h-4 w-4" />
+                        Add Income
+                      </Button>
+                    }
+                  />
+                </div>
+              )}
             </div>
           )}
         </CardContent>

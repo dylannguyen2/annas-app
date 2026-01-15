@@ -1,4 +1,4 @@
-export type ThemeId = 'default' | 'cute' | 'lavender' | 'mint'
+export type ThemeId = 'default' | 'cute' | 'lavender' | 'mint' | 'devil'
 
 export interface ThemeConfig {
   id: ThemeId
@@ -36,6 +36,13 @@ export const themes: Record<ThemeId, ThemeConfig> = {
     description: 'Fresh and calm',
     emoji: '🌿',
     cssClass: 'theme-mint',
+  },
+  devil: {
+    id: 'devil',
+    name: 'Devil',
+    description: 'Dark and fiery red',
+    emoji: '😈',
+    cssClass: 'theme-devil',
   },
 }
 

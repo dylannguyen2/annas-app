@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 
 const DEFAULT_CATEGORIES = [
@@ -19,17 +20,21 @@ const DEFAULT_CATEGORIES = [
 ]
 
 export async function POST() {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
 
   const { count } = await supabase
     .from('budget_categories')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
 
   if (count && count > 0) {
     return NextResponse.json({ message: 'Categories already exist', seeded: false })
@@ -37,7 +42,7 @@ export async function POST() {
 
   const { error } = await supabase
     .from('budget_categories')
-    .insert(DEFAULT_CATEGORIES.map(cat => ({ ...cat, user_id: user.id })))
+    .insert(DEFAULT_CATEGORIES.map(cat => ({ ...cat, user_id: effectiveUser.userId })))
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

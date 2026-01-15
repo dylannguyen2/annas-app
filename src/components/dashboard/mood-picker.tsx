@@ -9,16 +9,16 @@ import { Label } from '@/components/ui/label'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Save, Sparkles } from 'lucide-react'
 import { format } from 'date-fns'
 
 const MOOD_OPTIONS = [
-  { value: 0, emoji: '😰', label: 'Panic', color: '#dc2626' },
-  { value: 1, emoji: '😢', label: 'Awful', color: '#ef4444' },
-  { value: 2, emoji: '😕', label: 'Bad', color: '#f97316' },
-  { value: 3, emoji: '😐', label: 'Okay', color: '#eab308' },
-  { value: 4, emoji: '🙂', label: 'Good', color: '#22c55e' },
-  { value: 5, emoji: '😊', label: 'Great', color: '#10b981' },
+  { value: 0, emoji: '😰', label: 'Panic' },
+  { value: 1, emoji: '😢', label: 'Awful' },
+  { value: 2, emoji: '😕', label: 'Bad' },
+  { value: 3, emoji: '😐', label: 'Okay' },
+  { value: 4, emoji: '🙂', label: 'Good' },
+  { value: 5, emoji: '😊', label: 'Great' },
 ]
 
 interface MoodPickerProps {
@@ -68,7 +68,7 @@ export function MoodPicker({
   }
 
   const handleSave = async () => {
-    if (!mood) return
+    if (mood === undefined) return
     setLoading(true)
     try {
       await onSave({ mood, energy, stress, notes: notes || undefined, date: selectedDate })
@@ -90,13 +90,13 @@ export function MoodPicker({
               onSave({ mood: option.value, energy: 3, stress: 3, date: selectedDate })
             }}
             className={cn(
-              'flex flex-col items-center p-2 rounded-lg transition-all flex-1',
+              'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 flex-1 aspect-square',
               mood === option.value
-                ? 'bg-primary/20 ring-2 ring-primary'
-                : 'hover:bg-accent'
+                ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                : 'bg-secondary/50 hover:bg-primary/10 hover:scale-105'
             )}
           >
-            <span className="text-2xl">{option.emoji}</span>
+            <span className="text-2xl filter drop-shadow-sm">{option.emoji}</span>
           </button>
         ))}
       </div>
@@ -104,16 +104,21 @@ export function MoodPicker({
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-none shadow-lg bg-card/80 backdrop-blur-sm overflow-hidden">
+      <CardHeader className="pb-2 space-y-4">
         <div className="flex w-full items-center justify-between">
-          <CardTitle>How are you feeling?</CardTitle>
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-light tracking-tight flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              How are you feeling?
+            </CardTitle>
+          </div>
           {showDatePicker && (
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  {isToday ? 'Today' : format(selectedDate, 'MMM d')}
+                <Button variant="outline" size="sm" className="gap-2 h-8 rounded-full px-3 border-dashed border-primary/20 hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                  <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-medium">{isToday ? 'Today' : format(selectedDate, 'MMM d')}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -129,30 +134,47 @@ export function MoodPicker({
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex justify-center gap-3">
-          {MOOD_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setMood(option.value)}
-              className={cn(
-                'flex flex-col items-center p-3 rounded-xl transition-all',
-                mood === option.value
-                  ? 'bg-primary/20 ring-2 ring-primary scale-110'
-                  : 'hover:bg-accent hover:scale-105'
-              )}
-            >
-              <span className="text-3xl mb-1">{option.emoji}</span>
-              <span className="text-xs font-medium">{option.label}</span>
-            </button>
-          ))}
+      <CardContent className="space-y-8">
+        <div className="grid grid-cols-6 gap-2 sm:gap-4">
+          {MOOD_OPTIONS.map((option) => {
+             const isSelected = mood === option.value;
+             return (
+              <button
+                key={option.value}
+                onClick={() => setMood(option.value)}
+                className={cn(
+                  'group relative flex flex-col items-center justify-center py-4 rounded-2xl transition-all duration-300',
+                  isSelected
+                    ? 'bg-primary text-primary-foreground shadow-lg scale-110 z-10'
+                    : 'bg-secondary/30 hover:bg-primary/10 hover:scale-105'
+                )}
+              >
+                <span className={cn(
+                  "text-4xl mb-2 transition-transform duration-300 filter",
+                  isSelected ? "scale-110 drop-shadow-md" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110"
+                )}>
+                  {option.emoji}
+                </span>
+                <span className={cn(
+                  "text-[10px] font-medium tracking-wide uppercase transition-colors",
+                  isSelected ? "text-primary-foreground/90" : "text-muted-foreground group-hover:text-primary"
+                )}>
+                  {option.label}
+                </span>
+                
+                {isSelected && (
+                  <span className="absolute inset-0 rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-background" />
+                )}
+              </button>
+            )
+          })}
         </div>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between w-full">
-              <Label>Energy Level</Label>
-              <span className="text-sm text-muted-foreground">{energy}/5</span>
+        <div className="grid md:grid-cols-2 gap-8 pt-4">
+          <div className="space-y-4 p-4 rounded-2xl bg-secondary/20">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Energy</Label>
+              <span className="text-sm font-bold bg-background/50 px-2 py-0.5 rounded-md min-w-[30px] text-center">{energy}/5</span>
             </div>
             <Slider
               value={[energy]}
@@ -160,18 +182,18 @@ export function MoodPicker({
               min={1}
               max={5}
               step={1}
-              className="py-2"
+              className="py-2 cursor-grab active:cursor-grabbing"
             />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">
               <span>Exhausted</span>
               <span>Energized</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between w-full">
-              <Label>Stress Level</Label>
-              <span className="text-sm text-muted-foreground">{stress}/5</span>
+          <div className="space-y-4 p-4 rounded-2xl bg-secondary/20">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Stress</Label>
+              <span className="text-sm font-bold bg-background/50 px-2 py-0.5 rounded-md min-w-[30px] text-center">{stress}/5</span>
             </div>
             <Slider
               value={[stress]}
@@ -179,31 +201,48 @@ export function MoodPicker({
               min={1}
               max={5}
               step={1}
-              className="py-2"
+              className="py-2 cursor-grab active:cursor-grabbing"
             />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">
               <span>Relaxed</span>
               <span>Stressed</span>
             </div>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>Notes (optional)</Label>
+        <div className="space-y-3 pt-2">
+          <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider ml-1">Notes</Label>
           <Textarea
-            placeholder="How was your day? What's on your mind?"
+            placeholder="What's on your mind?..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
+            className="resize-none border-dashed border-2 focus:border-solid bg-transparent rounded-xl focus:ring-0 transition-all placeholder:text-muted-foreground/40"
           />
         </div>
 
         <Button 
           onClick={handleSave} 
-          disabled={!mood || loading}
-          className="w-full"
+          disabled={mood === undefined || loading}
+          className={cn(
+            "w-full h-12 text-lg font-medium rounded-xl transition-all duration-300",
+            saved ? "bg-green-500 hover:bg-green-600" : ""
+          )}
+          size="lg"
         >
-          {loading ? 'Saving...' : saved ? 'Saved!' : 'Save Mood'}
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Saving...
+            </span>
+          ) : saved ? (
+            <span className="flex items-center gap-2 animate-in-up">
+              <Save className="h-5 w-5" />
+              Saved!
+            </span>
+          ) : (
+            'Save Entry'
+          )}
         </Button>
       </CardContent>
     </Card>

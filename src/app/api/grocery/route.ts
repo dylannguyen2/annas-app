@@ -1,21 +1,22 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const effectiveUser = await getEffectiveUser()
 
-  if (!user) {
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const supabase = getSupabaseAdmin()
   const { searchParams } = new URL(request.url)
   const listId = searchParams.get('listId')
 
   let query = supabase
     .from('grocery_items')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
 
   if (listId) {
     query = query.eq('list_id', listId)
@@ -34,13 +35,17 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const effectiveUser = await getEffectiveUser()
 
-  if (!user) {
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
   const body = await request.json()
   const { name, quantity, unit, category, woolworths_id, woolworths_price, coles_id, coles_price, image_url, notes, list_id } = body
 
@@ -51,7 +56,7 @@ export async function POST(request: Request) {
   let query = supabase
     .from('grocery_items')
     .select('position')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
 
   if (list_id) {
     query = query.eq('list_id', list_id)
@@ -67,7 +72,7 @@ export async function POST(request: Request) {
   const { data: item, error } = await supabase
     .from('grocery_items')
     .insert({
-      user_id: user.id,
+      user_id: effectiveUser.userId,
       list_id: list_id || null,
       name,
       quantity: quantity || 1,
@@ -92,13 +97,17 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const effectiveUser = await getEffectiveUser()
 
-  if (!user) {
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
   const { searchParams } = new URL(request.url)
   const clearChecked = searchParams.get('clearChecked')
   const listId = searchParams.get('listId')
@@ -107,7 +116,7 @@ export async function DELETE(request: Request) {
     let query = supabase
       .from('grocery_items')
       .delete()
-      .eq('user_id', user.id)
+      .eq('user_id', effectiveUser.userId)
       .eq('checked', true)
 
     if (listId) {

@@ -9,7 +9,8 @@ import { useMoods } from '@/hooks/use-moods'
 import { useWorkouts } from '@/hooks/use-workouts'
 import { useHealth } from '@/hooks/use-health'
 import { formatDate } from '@/lib/utils/dates'
-import { Loader2, Smile, Target, Dumbbell, Moon, Footprints, Heart } from 'lucide-react'
+import { Smile, Target, Dumbbell, Moon, Footprints, Heart, Calendar as CalendarIcon } from 'lucide-react'
+import { PageSkeleton } from '@/components/dashboard/page-skeleton'
 
 const MOOD_EMOJIS: Record<number, string> = {
   1: '😢',
@@ -94,20 +95,21 @@ export default function HistoryPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">History</h2>
-        <p className="text-muted-foreground">
-          View your past entries and data
-        </p>
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <CalendarIcon className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">History</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">View your past entries and data.</p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-[350px_1fr]">

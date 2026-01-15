@@ -2,13 +2,15 @@
 
 import { useState, useRef } from 'react'
 import { useMeals, type MealType } from '@/hooks/use-meals'
+import { useShareView } from '@/lib/share-view/context'
 import { MealForm } from '@/components/forms/meal-form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Loader2, CalendarIcon, Camera, X, ChevronLeft, ChevronRight, Download, Maximize2, Plus, ImagePlus, Pencil, MapPin, Pin, Trash2 } from 'lucide-react'
+import { Loader2, CalendarIcon, Camera, X, ChevronLeft, ChevronRight, Download, Maximize2, Plus, ImagePlus, Pencil, MapPin, Pin, Trash2, UtensilsCrossed } from 'lucide-react'
+import { PageSkeleton } from '@/components/dashboard/page-skeleton'
 import { format } from 'date-fns'
 import { formatDate } from '@/lib/utils/dates'
 
@@ -49,6 +51,7 @@ const getMealTypeFromTime = (date: Date): MealType => {
 
 export default function MealsPage() {
   const { meals, loading, createMeal, updateMeal, deleteMeal, uploadPhoto, getMealsForDate, togglePin, getPinnedMeals } = useMeals()
+  const { isShareView } = useShareView()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null)
@@ -203,15 +206,11 @@ export default function MealsPage() {
   
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return (
-    <div className="space-y-6 w-full max-w-full overflow-x-hidden" onClick={() => setSelectedPhoto(null)}>
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500" onClick={() => setSelectedPhoto(null)}>
       <input
         ref={fileInputRef}
         type="file"
@@ -236,11 +235,16 @@ export default function MealsPage() {
         className="hidden"
       />
       
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Meals</h2>
-          <p className="text-muted-foreground">
-            Snap a photo to log
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <UtensilsCrossed className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Meals</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Snap a photo to log your meals.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -274,17 +278,21 @@ export default function MealsPage() {
               />
             </PopoverContent>
           </Popover>
-          <Button 
-            variant="outline"
-            size="icon"
-            onClick={handleUpload}
-          >
-            <ImagePlus className="h-4 w-4" />
-          </Button>
-          <Button onClick={handleQuickCapture} className="gap-2">
-            <Camera className="h-4 w-4" />
-            Snap
-          </Button>
+{!isShareView && (
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleUpload}
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <Button onClick={handleQuickCapture} className="gap-2">
+                <Camera className="h-4 w-4" />
+                Snap
+              </Button>
+            </>
+          )}
         </div>
       </div>
       
@@ -396,28 +404,30 @@ export default function MealsPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="flex gap-3 overflow-x-auto p-3 max-w-[calc(100vw-2rem)] md:max-w-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <button 
-                    className="flex-shrink-0 size-32 md:size-72 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-all cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (mealsForDate.length > 0) {
-                        setAddingToMeal(mealsForDate[0])
-                        addPhotoInputRef.current?.click()
-                      } else {
-                        handleUpload()
-                      }
-                    }}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-6 w-6 md:h-10 md:w-10 text-primary/50 animate-spin" />
-                    ) : (
-                      <>
-                        <ImagePlus className="h-6 w-6 md:h-10 md:w-10 text-primary/50" />
-                        <span className="text-xs md:text-sm text-primary/50">Upload</span>
-                      </>
-                    )}
-                  </button>
+                  {!isShareView && (
+                    <button
+                      className="flex-shrink-0 size-32 md:size-72 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-all cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (mealsForDate.length > 0) {
+                          setAddingToMeal(mealsForDate[0])
+                          addPhotoInputRef.current?.click()
+                        } else {
+                          handleUpload()
+                        }
+                      }}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-6 w-6 md:h-10 md:w-10 text-primary/50 animate-spin" />
+                      ) : (
+                        <>
+                          <ImagePlus className="h-6 w-6 md:h-10 md:w-10 text-primary/50" />
+                          <span className="text-xs md:text-sm text-primary/50">Upload</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   {allPhotosForDate.map(({ url, meal }, index) => (
                     <div
                       key={`${meal.id}-${index}`}
@@ -433,28 +443,32 @@ export default function MealsPage() {
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 hidden md:flex md:group-hover:opacity-100 transition-opacity items-center justify-center gap-3">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className={`h-7 w-7 md:h-11 md:w-11 rounded-full bg-white/20 hover:bg-white/30 text-white cursor-pointer ${meal.pinned ? 'text-primary' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            togglePin(meal.id)
-                          }}
-                        >
-                          <Pin className="h-3.5 w-3.5 md:h-5 md:w-5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 md:h-11 md:w-11 rounded-full bg-white/20 hover:bg-white/30 text-white cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingMeal(meal)
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5 md:h-5 md:w-5" />
-                        </Button>
+                        {!isShareView && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className={`h-7 w-7 md:h-11 md:w-11 rounded-full bg-white/20 hover:bg-white/30 text-white cursor-pointer ${meal.pinned ? 'text-primary' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              togglePin(meal.id)
+                            }}
+                          >
+                            <Pin className="h-3.5 w-3.5 md:h-5 md:w-5" />
+                          </Button>
+                        )}
+                        {!isShareView && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 md:h-11 md:w-11 rounded-full bg-white/20 hover:bg-white/30 text-white cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingMeal(meal)
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5 md:h-5 md:w-5" />
+                          </Button>
+                        )}
                         <Button
                           size="icon"
                           variant="ghost"
@@ -466,17 +480,19 @@ export default function MealsPage() {
                         >
                           <Download className="h-3.5 w-3.5 md:h-5 md:w-5" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 md:h-11 md:w-11 rounded-full bg-white/20 hover:bg-red-500/80 text-white cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteMeal(meal.id)
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 md:h-5 md:w-5" />
-                        </Button>
+                        {!isShareView && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 md:h-11 md:w-11 rounded-full bg-white/20 hover:bg-red-500/80 text-white cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteMeal(meal.id)
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 md:h-5 md:w-5" />
+                          </Button>
+                        )}
                       </div>
                       <div className="absolute top-1.5 left-1.5 md:top-2 md:left-2 group-hover:opacity-0 transition-opacity">
                         <span className="text-xs md:text-sm bg-black/70 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full">
@@ -529,17 +545,19 @@ export default function MealsPage() {
                               </p>
                             )}
                           </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              togglePin(meal.id)
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+                          {!isShareView && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                togglePin(meal.id)
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
                       )
                     })}
@@ -594,24 +612,26 @@ export default function MealsPage() {
                       <p className="text-xs text-muted-foreground">{format(new Date(selectedPhoto.meal.date), 'MMM d')}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className={`h-7 w-7 cursor-pointer ${selectedPhoto.meal.pinned ? 'text-primary' : 'text-muted-foreground'}`}
-                      onClick={() => togglePin(selectedPhoto.meal.id)}
-                    >
-                      <Pin className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 cursor-pointer"
-                      onClick={() => setEditingMeal(selectedPhoto.meal)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+{!isShareView && (
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={`h-7 w-7 cursor-pointer ${selectedPhoto.meal.pinned ? 'text-primary' : 'text-muted-foreground'}`}
+                        onClick={() => togglePin(selectedPhoto.meal.id)}
+                      >
+                        <Pin className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 cursor-pointer"
+                        onClick={() => setEditingMeal(selectedPhoto.meal)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 
                 {selectedPhoto.meal.description && (
@@ -800,38 +820,40 @@ export default function MealsPage() {
                       <p className="text-xs text-muted-foreground">{format(new Date(selectedPhoto.meal.date), 'MMM d')}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className={`h-7 w-7 cursor-pointer ${selectedPhoto.meal.pinned ? 'text-primary' : 'text-muted-foreground'}`}
-                      onClick={() => togglePin(selectedPhoto.meal.id)}
-                    >
-                      <Pin className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 cursor-pointer"
-                      onClick={() => {
-                        setSelectedPhoto(null)
-                        setEditingMeal(selectedPhoto.meal)
-                      }}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                      onClick={() => {
-                        deleteMeal(selectedPhoto.meal.id)
-                        setSelectedPhoto(null)
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+{!isShareView && (
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={`h-7 w-7 cursor-pointer ${selectedPhoto.meal.pinned ? 'text-primary' : 'text-muted-foreground'}`}
+                        onClick={() => togglePin(selectedPhoto.meal.id)}
+                      >
+                        <Pin className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 cursor-pointer"
+                        onClick={() => {
+                          setSelectedPhoto(null)
+                          setEditingMeal(selectedPhoto.meal)
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                        onClick={() => {
+                          deleteMeal(selectedPhoto.meal.id)
+                          setSelectedPhoto(null)
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 {selectedPhoto.meal.description && (
                   <div>

@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { WorkoutForm } from '@/components/forms/workout-form'
 import { useAllWorkouts, UnifiedWorkout } from '@/hooks/use-all-workouts'
-import { RefreshCw, Loader2, Clock, Flame, Heart, Footprints, Trash2, Watch, PenLine, MapPin, Upload, ChevronLeft, ChevronRight, X, Activity, CalendarIcon } from 'lucide-react'
+import { RefreshCw, Loader2, Clock, Flame, Heart, Footprints, Trash2, Watch, PenLine, MapPin, Upload, ChevronLeft, ChevronRight, X, Activity, CalendarIcon, Dumbbell } from 'lucide-react'
+import { PageSkeleton } from '@/components/dashboard/page-skeleton'
 import { useRef, useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO, format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isSameMonth, isSameDay, isToday, isFuture } from 'date-fns'
+import { useShareView } from '@/lib/share-view/context'
 
 const WORKOUT_ICONS: Record<string, string> = {
   running: '🏃',
@@ -68,6 +70,7 @@ const formatDistance = (meters: number | null) => {
 
 export default function WorkoutsPage() {
   const { workouts, loading, syncing, error, syncGarmin, createWorkout, updateWorkout, deleteWorkout, refetch } = useAllWorkouts()
+  const { isShareView } = useShareView()
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -204,21 +207,20 @@ export default function WorkoutsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Workouts</h2>
-          <p className="text-muted-foreground">
-            Synced from Garmin and manual entries
-          </p>
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <Dumbbell className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Workouts</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">Synced from Garmin and manual entries.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="relative lg:hidden">
@@ -234,30 +236,34 @@ export default function WorkoutsPage() {
               className="absolute inset-0 z-10 opacity-0 cursor-pointer"
             />
           </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept=".csv"
-            className="hidden"
-          />
-          <Button variant="outline" size="sm" onClick={handleImportClick} disabled={importing}>
-            {importing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {importing ? 'Importing...' : 'Import'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
-            {syncing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            {syncing ? 'Syncing...' : 'Sync'}
-          </Button>
-          <WorkoutForm onSubmit={createWorkout} />
+          {!isShareView && (
+            <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".csv"
+                className="hidden"
+              />
+              <Button variant="outline" size="sm" onClick={handleImportClick} disabled={importing}>
+                {importing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {importing ? 'Importing...' : 'Import'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                {syncing ? 'Syncing...' : 'Sync'}
+              </Button>
+              <WorkoutForm onSubmit={createWorkout} />
+            </>
+          )}
         </div>
       </div>
 
@@ -392,12 +398,14 @@ export default function WorkoutsPage() {
                 {selectedDateWorkouts.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <p>No workouts recorded on this day.</p>
-                    <div className="mt-4">
-                      <WorkoutForm 
-                        onSubmit={createWorkout} 
-                        trigger={<Button variant="outline" size="sm">Log</Button>}
-                      />
-                    </div>
+                    {!isShareView && (
+                      <div className="mt-4">
+                        <WorkoutForm
+                          onSubmit={createWorkout}
+                          trigger={<Button variant="outline" size="sm">Log</Button>}
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -470,46 +478,48 @@ export default function WorkoutsPage() {
                             </div>
                           </div>
                         </div>
-                        {workout.source === 'manual' ? (
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity -mr-1">
-                            <WorkoutForm 
-                              initialData={{
-                                date: workout.date,
-                                workout_type: workout.type,
-                                duration_minutes: workout.durationMinutes || undefined,
-                                calories: workout.calories || undefined,
-                                intensity: workout.intensity as any,
-                                notes: workout.notes || undefined
-                              }}
-                              onSubmit={(data) => updateWorkout(workout.id, data)}
-                              trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 text-muted-foreground hover:text-primary"
-                                >
-                                  <PenLine className="h-3 w-3" />
-                                </Button>
-                              }
-                            />
+                        {!isShareView && (
+                          workout.source === 'manual' ? (
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity -mr-1">
+                              <WorkoutForm
+                                initialData={{
+                                  date: workout.date,
+                                  workout_type: workout.type,
+                                  duration_minutes: workout.durationMinutes || undefined,
+                                  calories: workout.calories || undefined,
+                                  intensity: workout.intensity as any,
+                                  notes: workout.notes || undefined
+                                }}
+                                onSubmit={(data) => updateWorkout(workout.id, data)}
+                                trigger={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                  >
+                                    <PenLine className="h-3 w-3" />
+                                  </Button>
+                                }
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleDelete(workout)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive -mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => handleDelete(workout)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-destructive -mr-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDelete(workout)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          )
                         )}
                       </div>
                     ))}
@@ -538,18 +548,20 @@ export default function WorkoutsPage() {
               <div className="text-6xl mb-4">🏋️</div>
               <h3 className="text-xl font-semibold mb-2">No workouts yet</h3>
               <p className="text-muted-foreground mb-6">
-                Sync from Garmin or log workouts manually
+                {isShareView ? 'No workouts have been recorded' : 'Sync from Garmin or log workouts manually'}
               </p>
-              <div className="flex justify-center gap-3">
-                <Button variant="outline" onClick={handleSync} disabled={syncing}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Sync
-                </Button>
-                <WorkoutForm
-                  onSubmit={createWorkout}
-                  trigger={<Button>Log</Button>}
-                />
-              </div>
+              {!isShareView && (
+                <div className="flex justify-center gap-3">
+                  <Button variant="outline" onClick={handleSync} disabled={syncing}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sync
+                  </Button>
+                  <WorkoutForm
+                    onSubmit={createWorkout}
+                    trigger={<Button>Log</Button>}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
@@ -627,9 +639,9 @@ export default function WorkoutsPage() {
                       )}
                     </div>
                   </div>
-                  {workout.source === 'manual' && (
+                  {!isShareView && workout.source === 'manual' && (
                     <div className="flex items-center gap-1">
-                      <WorkoutForm 
+                      <WorkoutForm
                         initialData={{
                           date: workout.date,
                           workout_type: workout.type,

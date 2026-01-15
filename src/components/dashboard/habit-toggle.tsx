@@ -9,9 +9,10 @@ interface HabitToggleProps {
   habit: Habit
   isCompleted: boolean
   onToggle: () => Promise<void>
+  isReadOnly?: boolean
 }
 
-export function HabitToggle({ habit, isCompleted, onToggle }: HabitToggleProps) {
+export function HabitToggle({ habit, isCompleted, onToggle, isReadOnly }: HabitToggleProps) {
   const [loading, setLoading] = useState(false)
 
   const handleClick = async () => {
@@ -25,13 +26,14 @@ export function HabitToggle({ habit, isCompleted, onToggle }: HabitToggleProps) 
 
   return (
     <button
-      onClick={handleClick}
-      disabled={loading}
+      onClick={isReadOnly ? undefined : handleClick}
+      disabled={loading || isReadOnly}
       className={cn(
         'flex items-center gap-3 w-full p-3 rounded-lg transition-all',
         isCompleted
-          ? 'bg-primary/10 hover:bg-primary/20'
-          : 'bg-secondary hover:bg-accent'
+          ? isReadOnly ? 'bg-primary/10' : 'bg-primary/10 hover:bg-primary/20'
+          : isReadOnly ? 'bg-secondary' : 'bg-secondary hover:bg-accent',
+        isReadOnly && 'cursor-default'
       )}
     >
       <div

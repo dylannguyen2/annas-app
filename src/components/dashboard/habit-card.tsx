@@ -21,9 +21,10 @@ interface HabitCardProps {
   onToggle: (habitId: string, date: string, completed: boolean) => Promise<void>
   onUpdate: (id: string, data: { name: string; icon: string; color: string }) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  isReadOnly?: boolean
 }
 
-export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete }: HabitCardProps) {
+export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete, isReadOnly }: HabitCardProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState(habit.name)
@@ -77,7 +78,7 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete 
             {habit.icon}
           </div>
           <div>
-            {isEditingName ? (
+            {isEditingName && !isReadOnly ? (
               <input
                 type="text"
                 value={editedName}
@@ -88,7 +89,7 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete 
                 className="font-medium bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
               />
             ) : (
-              <h3 onClick={handleNameClick} className="font-medium cursor-text">{habit.name}</h3>
+              <h3 onClick={isReadOnly ? undefined : handleNameClick} className={cn("font-medium", !isReadOnly && "cursor-text")}>{habit.name}</h3>
             )}
             {streak > 0 && (
               <div className="flex items-center gap-1 text-sm text-orange-500">
@@ -98,32 +99,34 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete 
             )}
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <HabitForm
-              habit={habit}
-              onSubmit={(data) => onUpdate(habit.id, data)}
-              trigger={
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
-                </DropdownMenuItem>
-              }
-            />
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() => onDelete(habit.id)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {!isReadOnly && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <HabitForm
+                habit={habit}
+                onSubmit={(data) => onUpdate(habit.id, data)}
+                trigger={
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                }
+              />
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => onDelete(habit.id)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div className="grid grid-cols-7 gap-1">
@@ -135,14 +138,15 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete 
           return (
             <button
               key={date}
-              onClick={() => handleToggle(date)}
-              disabled={isLoading}
+              onClick={isReadOnly ? undefined : () => handleToggle(date)}
+              disabled={isLoading || isReadOnly}
               className={cn(
                 'flex flex-col items-center py-2 rounded-lg transition-all',
                 isTodayDate && 'ring-2 ring-primary ring-offset-1',
                 isComplete
                   ? 'bg-primary/20'
-                  : 'hover:bg-accent'
+                  : !isReadOnly && 'hover:bg-accent',
+                isReadOnly && 'cursor-default'
               )}
             >
               <span className="text-xs text-muted-foreground">{getDayName(date)}</span>

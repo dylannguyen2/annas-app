@@ -1,13 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = getSupabaseAdmin()
 
   const { searchParams } = new URL(request.url)
   const startDate = searchParams.get('start')
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('moods')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .order('date', { ascending: false })
 
   if (startDate) query = query.gte('date', startDate)
@@ -32,12 +33,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
 
   const body = await request.json()
   const { date, mood, energy, stress, notes, tags } = body
@@ -49,7 +54,7 @@ export async function POST(request: Request) {
   const { data: existing } = await supabase
     .from('moods')
     .select('id')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .eq('date', date)
     .single()
 
@@ -70,7 +75,7 @@ export async function POST(request: Request) {
   const { data: newMood, error } = await supabase
     .from('moods')
     .insert({
-      user_id: user.id,
+      user_id: effectiveUser.userId,
       date,
       mood,
       energy,

@@ -65,10 +65,10 @@ export function MainContent({
   const { isCollapsed } = useSidebar()
   
   return (
-    <div 
+    <div
       className={cn(
-        "transition-all duration-300 ease-in-out",
-        isCollapsed ? "md:pl-20" : "md:pl-64",
+        "transition-all duration-500 ease-in-out",
+        isCollapsed ? "md:pl-20" : "md:pl-60",
         className
       )}
     >

@@ -1,15 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 import { createGarminClient, getGarminTokens } from '@/lib/garmin/client'
 import { encryptTokens } from '@/lib/garmin/encryption'
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
 
   const body = await request.json()
   const { email, password } = body
@@ -32,7 +37,7 @@ export async function POST(request: Request) {
     const { error: upsertError } = await supabase
       .from('garmin_credentials')
       .upsert({
-        user_id: user.id,
+        user_id: effectiveUser.userId,
         oauth1_token: encryptedOauth1,
         oauth2_token: encryptedOauth2,
         updated_at: new Date().toISOString(),

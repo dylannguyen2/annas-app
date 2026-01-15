@@ -1,14 +1,15 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 import { ALL_CATEGORIES, getCategoryByName } from '@/lib/constants/budget-categories'
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = getSupabaseAdmin()
 
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month')
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
   const { data: transactions, error } = await supabase
     .from('budget_transactions')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .gte('date', startDate)
     .lte('date', endDateStr)
     .order('date', { ascending: false })
@@ -48,11 +49,11 @@ export async function GET(request: Request) {
 
   const categoryBreakdown = ALL_CATEGORIES.map(cat => {
     const categoryTxs = txList.filter(t => t.category === cat.name)
-    
+
     const spent = categoryTxs
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + Number(t.amount), 0)
-    
+
     const earned = categoryTxs
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0)

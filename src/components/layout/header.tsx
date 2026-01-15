@@ -26,31 +26,54 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-background border-b">
-      <div className="flex items-center justify-between h-16 px-4 md:px-6">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/60 border-b border-border/40 supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-16 items-center justify-between px-4 md:px-6 transition-all duration-300 ease-in-out">
         <div className="md:hidden">
-          <h1 className="text-xl font-bold">Anna's World 🌏</h1>
+          <h1 className="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+            Anna's World <span className="text-foreground filter grayscale-[0.2]">🌏</span>
+          </h1>
         </div>
-        <div className="hidden md:block">
-          <p className="text-sm text-muted-foreground">{today}</p>
+        <div className="hidden md:flex flex-col justify-center">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground/80 font-semibold mb-0.5">
+            Today's Overview
+          </span>
+          <p className="text-sm font-medium text-foreground/90 tracking-tight font-sans">
+            {today}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <CommandPaletteTrigger />
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="opacity-80 hover:opacity-100 transition-opacity">
+            <CommandPaletteTrigger />
+          </div>
+          
+          <div className="h-4 w-px bg-border/60 hidden sm:block" />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback>A</AvatarFallback>
+              <Button 
+                variant="ghost" 
+                className="relative h-10 w-10 rounded-full hover:bg-primary/5 focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 transition-all duration-300 group"
+              >
+                <Avatar className="h-9 w-9 border border-primary/10 shadow-sm transition-transform group-active:scale-95 group-hover:shadow-md ring-2 ring-transparent group-hover:ring-primary/10">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/10 to-accent/10 text-primary font-medium">
+                    A
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push('/settings')}>
+            <DropdownMenuContent align="end" className="w-56 mt-2 p-1 border-border/50 bg-background/80 backdrop-blur-xl shadow-xl rounded-xl">
+              <DropdownMenuItem 
+                onClick={() => router.push('/settings')}
+                className="rounded-lg focus:bg-primary/10 focus:text-primary cursor-pointer py-2.5 px-3"
+              >
                 <User className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuSeparator className="bg-border/50 my-1" />
+              <DropdownMenuItem 
+                onClick={handleSignOut}
+                className="rounded-lg focus:bg-destructive/10 focus:text-destructive text-destructive/80 cursor-pointer py-2.5 px-3"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
               </DropdownMenuItem>

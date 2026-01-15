@@ -1,15 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 import { createGarminClientFromTokens, fetchGarminData, parseSleepData, parseHeartRateData, getGarminTokens, fetchActivities, parseActivityData } from '@/lib/garmin/client'
 import { decryptTokens, encryptTokens } from '@/lib/garmin/encryption'
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
 
   const body = await request.json()
   const { date } = body
@@ -18,7 +23,7 @@ export async function POST(request: Request) {
   const { data: credentials } = await supabase
     .from('garmin_credentials')
     .select('oauth1_token, oauth2_token')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .single()
 
   if (!credentials) {
@@ -42,7 +47,7 @@ export async function POST(request: Request) {
           last_sync_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUser.userId)
     }
 
     const sleepParsed = parseSleepData(rawData.sleep)
@@ -51,7 +56,7 @@ export async function POST(request: Request) {
     const dateStr = syncDate.toISOString().split('T')[0]
 
     const healthData = {
-      user_id: user.id,
+      user_id: effectiveUser.userId,
       date: dateStr,
       steps: rawData.steps || null,
       ...sleepParsed,
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
     const { data: existing } = await supabase
       .from('health_data')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', effectiveUser.userId)
       .eq('date', dateStr)
       .single()
 
@@ -87,7 +92,7 @@ export async function POST(request: Request) {
       const { data: existingActivity } = await supabase
         .from('activities')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUser.userId)
         .eq('garmin_activity_id', activity.garmin_activity_id)
         .single()
 
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
       } else {
         await supabase
           .from('activities')
-          .insert({ ...activity, user_id: user.id, synced_at: new Date().toISOString() })
+          .insert({ ...activity, user_id: effectiveUser.userId, synced_at: new Date().toISOString() })
       }
       activitiesSynced++
     }

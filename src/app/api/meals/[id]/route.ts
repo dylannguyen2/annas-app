@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 
 function extractStoragePath(url: string): string | null {
@@ -6,7 +7,7 @@ function extractStoragePath(url: string): string | null {
   return match ? match[1] : null
 }
 
-async function deletePhotosFromStorage(supabase: Awaited<ReturnType<typeof createClient>>, urls: string[]) {
+async function deletePhotosFromStorage(supabase: ReturnType<typeof getSupabaseAdmin>, urls: string[]) {
   const paths = urls.map(extractStoragePath).filter((p): p is string => p !== null)
   if (paths.length > 0) {
     await supabase.storage.from('meal-photos').remove(paths)
@@ -17,13 +18,16 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
   const { id } = await params
   const body = await request.json()
   const { date, meal_type, photo_url, photo_urls, description, location, notes, pinned } = body
@@ -32,7 +36,7 @@ export async function PATCH(
     .from('meals')
     .select('photo_urls')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .single()
 
   const updateData: Record<string, unknown> = {}
@@ -45,7 +49,7 @@ export async function PATCH(
   if (photo_urls !== undefined) {
     updateData.photo_urls = photo_urls
     updateData.photo_url = photo_urls[0] || null
-    
+
     if (existingMeal?.photo_urls) {
       const removedPhotos = existingMeal.photo_urls.filter(
         (url: string) => !photo_urls.includes(url)
@@ -62,7 +66,7 @@ export async function PATCH(
     .from('meals')
     .update(updateData)
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .select()
     .single()
 
@@ -77,20 +81,23 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
   const { id } = await params
 
   const { data: meal } = await supabase
     .from('meals')
     .select('photo_urls')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .single()
 
   if (meal?.photo_urls && meal.photo_urls.length > 0) {
@@ -101,7 +108,7 @@ export async function DELETE(
     .from('meals')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

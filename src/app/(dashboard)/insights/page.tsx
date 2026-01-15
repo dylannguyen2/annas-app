@@ -13,7 +13,8 @@ import {
   SleepChart,
   StepsChart
 } from '@/components/charts'
-import { Loader2, TrendingUp, Moon, Activity, Heart } from 'lucide-react'
+import { TrendingUp, Moon, Activity, Heart, Lightbulb } from 'lucide-react'
+import { PageSkeleton } from '@/components/dashboard/page-skeleton'
 
 export default function InsightsPage() {
   const { habits, completions, loading: habitsLoading } = useHabits()
@@ -143,24 +144,25 @@ export default function InsightsPage() {
   }, [moods, healthData, habits, completions])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Insights</h2>
-        <p className="text-muted-foreground">
-          Discover patterns and correlations in your data
-        </p>
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <Lightbulb className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Insights</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">Discover patterns and correlations in your data.</p>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Mood</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -172,7 +174,7 @@ export default function InsightsPage() {
             <p className="text-xs text-muted-foreground">past 7 days</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Sleep</CardTitle>
             <Moon className="h-4 w-4 text-muted-foreground" />
@@ -184,7 +186,7 @@ export default function InsightsPage() {
             <p className="text-xs text-muted-foreground">past 7 days</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Steps</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
@@ -196,7 +198,7 @@ export default function InsightsPage() {
             <p className="text-xs text-muted-foreground">past 7 days</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Habit Rate</CardTitle>
             <Heart className="h-4 w-4 text-muted-foreground" />

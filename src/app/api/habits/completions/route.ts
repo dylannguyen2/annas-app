@@ -1,14 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const supabase = getSupabaseAdmin()
   const { searchParams } = new URL(request.url)
   const startDate = searchParams.get('start')
   const endDate = searchParams.get('end')
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('habit_completions')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
 
   if (startDate) {
     query = query.gte('date', startDate)
@@ -39,13 +39,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
   const body = await request.json()
   const { habit_id, date, completed, notes } = body
 
@@ -90,7 +93,7 @@ export async function POST(request: Request) {
     .from('habit_completions')
     .insert({
       habit_id,
-      user_id: user.id,
+      user_id: effectiveUser.userId,
       date,
       completed: completed ?? true,
       notes,

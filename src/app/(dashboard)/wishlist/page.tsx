@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useShareView } from '@/lib/share-view/context'
 
 const TABS = [
   { id: 'unpurchased', label: 'Wishlist', icon: Gift },
@@ -426,6 +427,7 @@ function DetailPanel({
   onToggle,
   onDelete,
   onUpdate,
+  isReadOnly = false,
 }: {
   item: WishlistItem
   onClose: () => void
@@ -433,6 +435,7 @@ function DetailPanel({
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onUpdate: (id: string, data: Partial<WishlistItem>) => void
+  isReadOnly?: boolean
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState(item.title)
@@ -446,6 +449,7 @@ function DetailPanel({
   }
 
   const handleTitleClick = () => {
+    if (isReadOnly) return
     setEditedTitle(item.title)
     setIsEditingTitle(true)
   }
@@ -512,9 +516,9 @@ function DetailPanel({
                   className="text-lg font-semibold leading-tight bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
                 />
               ) : (
-                <h2 
+                <h2
                   onClick={handleTitleClick}
-                  className="text-lg font-semibold leading-tight cursor-text"
+                  className={cn("text-lg font-semibold leading-tight", !isReadOnly && "cursor-text")}
                 >
                   {item.title}
                 </h2>
@@ -527,7 +531,7 @@ function DetailPanel({
                 Added {formatDate(item.created_at)}
               </p>
             </div>
-            
+
             {item.price && (
               <div className="inline-flex items-center rounded-lg bg-primary/10 text-primary px-3 py-1.5 text-lg font-bold">
                 {item.currency} {item.price}
@@ -545,46 +549,57 @@ function DetailPanel({
       </div>
 
       <div className="border-t border-border/50 p-4 space-y-2">
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+        {isReadOnly ? (
+          <Button variant="outline" size="sm" className="w-full gap-1.5" asChild>
             <a href={item.url} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-3.5 w-3.5" />
               Open
             </a>
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="gap-1.5"
-            onClick={() => onEdit(item)}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </Button>
-        </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                <a href={item.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open
+                </a>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => onEdit(item)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            </div>
 
-        <Button 
-          variant={item.purchased ? "secondary" : "default"}
-          size="sm"
-          className={cn(
-            "w-full gap-1.5", 
-            item.purchased && "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"
-          )}
-          onClick={() => onToggle(item.id)}
-        >
-          <Check className="h-3.5 w-3.5" />
-          {item.purchased ? "Purchased" : "Mark Purchased"}
-        </Button>
+            <Button
+              variant={item.purchased ? "secondary" : "default"}
+              size="sm"
+              className={cn(
+                "w-full gap-1.5",
+                item.purchased && "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"
+              )}
+              onClick={() => onToggle(item.id)}
+            >
+              <Check className="h-3.5 w-3.5" />
+              {item.purchased ? "Purchased" : "Mark Purchased"}
+            </Button>
 
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="w-full gap-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => onDelete(item.id)}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Delete
-        </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full gap-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => onDelete(item.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </Button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -598,6 +613,7 @@ function MobileDetailSheet({
   onToggle,
   onDelete,
   onUpdate,
+  isReadOnly = false,
 }: {
   item: WishlistItem | null
   open: boolean
@@ -606,6 +622,7 @@ function MobileDetailSheet({
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onUpdate: (id: string, data: Partial<WishlistItem>) => void
+  isReadOnly?: boolean
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState(item?.title || '')
@@ -621,6 +638,7 @@ function MobileDetailSheet({
   }
 
   const handleTitleClick = () => {
+    if (isReadOnly) return
     setEditedTitle(item.title)
     setIsEditingTitle(true)
   }
@@ -678,12 +696,12 @@ function MobileDetailSheet({
                   className="text-xl font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
                 />
               ) : (
-                <h2 onClick={handleTitleClick} className="text-xl font-semibold cursor-text">{item.title}</h2>
+                <h2 onClick={handleTitleClick} className={cn("text-xl font-semibold", !isReadOnly && "cursor-text")}>{item.title}</h2>
               )}
               <p className="text-sm text-muted-foreground mt-1">
                 {item.site_name || new URL(item.url).hostname.replace('www.', '')} • Added {formatDate(item.created_at)}
               </p>
-              
+
               {item.price && (
                 <div className="inline-flex items-center rounded-lg bg-primary/10 text-primary px-3 py-1.5 text-lg font-bold mt-3">
                   {item.currency} {item.price}
@@ -699,34 +717,45 @@ function MobileDetailSheet({
             </div>
 
             <div className="border-t p-4 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="gap-2" asChild>
+              {isReadOnly ? (
+                <Button variant="outline" className="w-full gap-2" asChild>
                   <a href={item.url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4" />
                     Open
                   </a>
                 </Button>
-                <Button variant="outline" className="gap-2" onClick={() => onEdit(item)}>
-                  <Pencil className="h-4 w-4" />
-                  Edit
-                </Button>
-              </div>
-              <Button 
-                variant={item.purchased ? "secondary" : "default"}
-                className={cn("w-full gap-2", item.purchased && "bg-green-100 text-green-700")}
-                onClick={() => onToggle(item.id)}
-              >
-                <Check className="h-4 w-4" />
-                {item.purchased ? "Purchased" : "Mark Purchased"}
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full gap-2 text-muted-foreground hover:text-destructive"
-                onClick={() => onDelete(item.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" className="gap-2" asChild>
+                      <a href={item.url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                        Open
+                      </a>
+                    </Button>
+                    <Button variant="outline" className="gap-2" onClick={() => onEdit(item)}>
+                      <Pencil className="h-4 w-4" />
+                      Edit
+                    </Button>
+                  </div>
+                  <Button
+                    variant={item.purchased ? "secondary" : "default"}
+                    className={cn("w-full gap-2", item.purchased && "bg-green-100 text-green-700")}
+                    onClick={() => onToggle(item.id)}
+                  >
+                    <Check className="h-4 w-4" />
+                    {item.purchased ? "Purchased" : "Mark Purchased"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full gap-2 text-muted-foreground hover:text-destructive"
+                    onClick={() => onDelete(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </DialogPrimitive.Content>
@@ -735,20 +764,22 @@ function MobileDetailSheet({
   )
 }
 
-function WishlistItemCard({ 
-  item, 
-  togglePurchased, 
+function WishlistItemCard({
+  item,
+  togglePurchased,
   deleteItem,
   onEdit,
   onClick,
   isSelected,
-}: { 
+  isReadOnly = false,
+}: {
   item: WishlistItem
   togglePurchased: (id: string) => Promise<WishlistItem | undefined>
   deleteItem: (id: string) => Promise<void>
   onEdit: () => void
   onClick: () => void
   isSelected?: boolean
+  isReadOnly?: boolean
 }) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
@@ -812,9 +843,9 @@ function WishlistItemCard({
         
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-1.5 p-2 backdrop-blur-[2px]">
           <div className="flex gap-1.5">
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <Button
+              variant="outline"
+              size="icon"
               className="h-8 w-8 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-md"
               asChild
               onClick={handleLinkClick}
@@ -824,47 +855,51 @@ function WishlistItemCard({
               </a>
             </Button>
 
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-8 w-8 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-md"
-              onClick={handleEdit}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+            {!isReadOnly && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-md"
+                  onClick={handleEdit}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
 
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className={cn(
-                "h-8 w-8 rounded-full border-white/20 backdrop-blur-md transition-colors",
-                item.purchased 
-                  ? "bg-green-500/80 border-transparent text-white hover:bg-green-600" 
-                  : "bg-white/10 text-white hover:bg-white/20 hover:text-white"
-              )}
-              onClick={handleToggle}
-              disabled={isToggling}
-            >
-              {isToggling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-            </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-full border-white/20 backdrop-blur-md transition-colors",
+                    item.purchased
+                      ? "bg-green-500/80 border-transparent text-white hover:bg-green-600"
+                      : "bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                  )}
+                  onClick={handleToggle}
+                  disabled={isToggling}
+                >
+                  {isToggling ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                </Button>
 
-            <Button 
-              variant="destructive" 
-              size="icon" 
-              className="h-8 w-8 rounded-full bg-red-500/80 hover:bg-red-600 border-none backdrop-blur-md"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-            </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="h-8 w-8 rounded-full bg-red-500/80 hover:bg-red-600 border-none backdrop-blur-md"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -888,17 +923,18 @@ function WishlistItemCard({
 }
 
 export default function WishlistPage() {
-  const { 
+  const { isShareView } = useShareView()
+  const {
     items,
-    unpurchasedItems, 
-    purchasedItems, 
-    loading, 
-    addItem, 
+    unpurchasedItems,
+    purchasedItems,
+    loading,
+    addItem,
     updateItem,
-    togglePurchased, 
-    deleteItem 
+    togglePurchased,
+    deleteItem
   } = useWishlist()
-  
+
   const [activeTab, setActiveTab] = useState<TabType>('unpurchased')
   const [commandOpen, setCommandOpen] = useState(false)
   const [editItem, setEditItem] = useState<WishlistItem | null>(null)
@@ -948,26 +984,31 @@ export default function WishlistPage() {
   const activeItems = activeTab === 'unpurchased' ? unpurchasedItems : purchasedItems
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-10 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-        <div className="px-4 md:px-6">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
               <Gift className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold tracking-tight">Wishlist</h1>
             </div>
-            
-            <Button 
-              onClick={() => setCommandOpen(true)}
-              className="gap-2 rounded-full px-4 shadow-sm hover:shadow-md transition-all"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Item</span>
-              <span className="inline sm:hidden">Add</span>
-            </Button>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Wishlist</h1>
           </div>
+          <p className="text-muted-foreground text-lg">Keep track of things you want.</p>
+        </div>
 
-          <div className="flex items-center gap-2 pb-4">
+        {!isShareView && (
+          <Button
+            onClick={() => setCommandOpen(true)}
+            className="gap-2 rounded-full px-4 shadow-sm hover:shadow-md transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Item</span>
+            <span className="inline sm:hidden">Add</span>
+          </Button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
               {TABS.map((tab) => {
                 const Icon = tab.icon
@@ -1000,12 +1041,10 @@ export default function WishlistPage() {
               })}
             </div>
           </div>
-        </div>
-      </div>
 
       <div className="flex">
         <div 
-          className="flex-1 px-4 py-8 md:px-6"
+          className="flex-1"
           onClick={(e) => {
             const target = e.target as HTMLElement
             if (!target.closest('[data-wishlist-card]') && !target.closest('[data-detail-panel]')) {
@@ -1026,19 +1065,20 @@ export default function WishlistPage() {
           ) : activeItems.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-3 gap-y-6">
               {activeItems.map((item) => (
-                <WishlistItemCard 
-                  key={item.id} 
-                  item={item} 
-                  togglePurchased={togglePurchased} 
+                <WishlistItemCard
+                  key={item.id}
+                  item={item}
+                  togglePurchased={togglePurchased}
                   deleteItem={deleteItem}
                   onEdit={() => handleEditItem(item)}
                   onClick={() => handleItemClick(item)}
                   isSelected={selectedItem?.id === item.id}
+                  isReadOnly={isShareView}
                 />
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="mb-6 rounded-full bg-secondary/50 p-6 ring-1 ring-border/50">
                 <Gift className="h-12 w-12 text-muted-foreground/40" />
               </div>
@@ -1050,7 +1090,7 @@ export default function WishlistPage() {
                 {activeTab === 'unpurchased' && "Found something you like? Add it to your wishlist."}
                 {activeTab === 'purchased' && "Items you mark as purchased will appear here."}
               </p>
-              {activeTab === 'unpurchased' && (
+              {!isShareView && activeTab === 'unpurchased' && (
                 <Button onClick={() => setCommandOpen(true)} className="gap-2">
                   <Plus className="h-4 w-4" />
                   Add First Item
@@ -1072,6 +1112,7 @@ export default function WishlistPage() {
                 await updateItem(id, data)
                 if (data.title) setSelectedItem({...selectedItem, ...data})
               }}
+              isReadOnly={isShareView}
             />
           </div>
         )}
@@ -1088,20 +1129,25 @@ export default function WishlistPage() {
           await updateItem(id, data)
           if (selectedItem && data.title) setSelectedItem({...selectedItem, ...data})
         }}
+        isReadOnly={isShareView}
       />
 
-      <AddItemDialog
-        open={commandOpen}
-        onOpenChange={setCommandOpen}
-        addItem={addItem}
-      />
+      {!isShareView && (
+        <>
+          <AddItemDialog
+            open={commandOpen}
+            onOpenChange={setCommandOpen}
+            addItem={addItem}
+          />
 
-      <EditItemDialog
-        item={editItem}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        updateItem={updateItem}
-      />
+          <EditItemDialog
+            item={editItem}
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            updateItem={updateItem}
+          />
+        </>
+      )}
     </div>
   )
 }

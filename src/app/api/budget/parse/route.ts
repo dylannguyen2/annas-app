@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { ALL_CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/lib/constants/budget-categories'
@@ -15,11 +15,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
   }
 
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
   }
 
   const { input } = await request.json()
@@ -58,7 +60,7 @@ Income categories: ${INCOME_NAMES}
     }
 
     const parsed = JSON.parse(jsonMatch[0])
-    
+
     const matchedCategory = ALL_CATEGORIES.find(
       c => c.name.toLowerCase() === parsed.category?.toLowerCase() ||
            c.name.toLowerCase().includes(parsed.category?.toLowerCase()) ||

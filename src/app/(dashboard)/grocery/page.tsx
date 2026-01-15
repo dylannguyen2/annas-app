@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useShareView } from '@/lib/share-view/context'
 import { useGroceryList, useGroceryLists } from '@/hooks/use-grocery-list'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,16 +28,18 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { GroceryItem } from '@/types/database'
 
-function GroceryListItem({ 
-  item, 
-  onToggle, 
-  onUpdate, 
-  onDelete 
-}: { 
+function GroceryListItem({
+  item,
+  onToggle,
+  onUpdate,
+  onDelete,
+  isShareView = false
+}: {
   item: GroceryItem
   onToggle: (id: string) => void
   onUpdate: (id: string, data: Partial<GroceryItem>) => void
   onDelete: (id: string) => void
+  isShareView?: boolean
 }) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -59,7 +62,7 @@ function GroceryListItem({
   }
 
   const handleNameClick = () => {
-    if (!item.checked) {
+    if (!item.checked && !isShareView) {
       setEditedName(item.name)
       setIsEditing(true)
     }
@@ -92,12 +95,14 @@ function GroceryListItem({
         : "bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border"
     )}>
       <button
-        onClick={() => onToggle(item.id)}
+        onClick={() => !isShareView && onToggle(item.id)}
+        disabled={isShareView}
         className={cn(
           "flex-shrink-0 h-5 w-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center",
-          item.checked 
-            ? "bg-primary border-primary" 
-            : "border-muted-foreground/30 hover:border-primary/50"
+          item.checked
+            ? "bg-primary border-primary"
+            : "border-muted-foreground/30 hover:border-primary/50",
+          isShareView && "cursor-default"
         )}
       >
         {item.checked && (
@@ -136,59 +141,56 @@ function GroceryListItem({
         item.checked && "opacity-40"
       )}>
         <div className="flex items-center bg-muted/50 rounded-lg">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 rounded-lg hover:bg-muted" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-lg hover:bg-muted"
             onClick={handleDecrement}
-            disabled={item.checked || (item.quantity || 1) <= 1}
+            disabled={isShareView || item.checked || (item.quantity || 1) <= 1}
           >
             <Minus className="w-3 h-3" />
           </Button>
           <span className="w-6 text-center text-xs font-semibold tabular-nums">
             {item.quantity || 1}
           </span>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 rounded-lg hover:bg-muted" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-lg hover:bg-muted"
             onClick={handleIncrement}
-            disabled={item.checked}
+            disabled={isShareView || item.checked}
           >
             <Plus className="w-3 h-3" />
           </Button>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
-        >
-          {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-        </Button>
+        {!isShareView && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
+          >
+            {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          </Button>
+        )}
       </div>
     </div>
   )
 }
 
 export default function GroceryPage() {
-  const { 
-    lists, 
-    createList, 
-    updateList, 
+  const { isShareView } = useShareView()
+  const {
+    lists,
+    createList,
+    updateList,
     deleteList,
-    loading: listsLoading 
+    loading: listsLoading
   } = useGroceryLists()
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
-  
-  useEffect(() => {
-    if (!listsLoading && lists.length > 0 && !selectedListId) {
-      setSelectedListId(lists[0].id)
-    }
-  }, [lists, listsLoading, selectedListId])
 
   const { 
     uncheckedItems, 
@@ -200,6 +202,15 @@ export default function GroceryPage() {
     deleteItem, 
     clearChecked,
   } = useGroceryList(selectedListId)
+
+  const loading = listsLoading || (selectedListId && itemsLoading)
+  const currentList = lists.find(l => l.id === selectedListId)
+  
+  useEffect(() => {
+    if (!listsLoading && lists.length > 0 && !selectedListId) {
+      setSelectedListId(lists[0].id)
+    }
+  }, [lists, listsLoading, selectedListId])
 
   const [newItem, setNewItem] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -273,9 +284,6 @@ export default function GroceryPage() {
     }
   }
 
-  const loading = listsLoading || (selectedListId && itemsLoading)
-  const currentList = lists.find(l => l.id === selectedListId)
-
   if (loading && !uncheckedItems.length && !checkedItems.length) {
     return (
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
@@ -293,19 +301,19 @@ export default function GroceryPage() {
   const isEmpty = totalItems === 0
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <ShoppingBasket className="h-5 w-5 text-primary" />
-          </div>
-          
-          <div>
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full page-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <ShoppingCart className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Grocery</h1>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-auto p-0 hover:bg-transparent font-bold text-2xl tracking-tight flex items-center gap-2">
+                <Button variant="outline" size="sm" className="gap-2 rounded-full">
                   {currentList ? currentList.name : 'All Items'}
-                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
@@ -323,62 +331,70 @@ export default function GroceryPage() {
                     <span className={cn(selectedListId === list.id && "font-medium")}>
                       {list.name}
                     </span>
-                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => openRenameDialog(list.id, list.name, e)}
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 hover:text-destructive"
-                        onClick={(e) => handleDeleteList(list.id, e)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    {!isShareView && (
+                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={(e) => openRenameDialog(list.id, list.name, e)}
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 hover:text-destructive"
+                          onClick={(e) => handleDeleteList(list.id, e)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setIsCreateDialogOpen(true)}>
-                  <FolderPlus className="mr-2 h-4 w-4" />
-                  Create New List
-                </DropdownMenuItem>
+                {!isShareView && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => setIsCreateDialogOpen(true)}>
+                      <FolderPlus className="mr-2 h-4 w-4" />
+                      Create New List
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <p className="text-sm text-muted-foreground">
-              {isEmpty ? 'Start adding items' : `${uncheckedItems.length} item${uncheckedItems.length !== 1 ? 's' : ''} to buy`}
-            </p>
           </div>
+          <p className="text-muted-foreground text-lg">
+            {isEmpty ? 'Start adding items to your list.' : `${uncheckedItems.length} item${uncheckedItems.length !== 1 ? 's' : ''} to buy.`}
+          </p>
         </div>
         
-        <form onSubmit={handleAdd} className="flex-1 max-w-md">
-          <div className="relative">
-            <Input
-              placeholder="Add an item..."
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              className="h-11 pl-4 pr-12 rounded-xl border-border/50 bg-card shadow-sm focus-visible:border-primary/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-              disabled={isAdding}
-            />
-            <Button 
-              type="submit" 
-              size="icon"
-              disabled={!newItem.trim() || isAdding}
-              className="absolute right-1.5 top-1.5 h-8 w-8 rounded-lg"
-            >
-              {isAdding ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </form>
+        {!isShareView && (
+          <form onSubmit={handleAdd} className="flex-1 max-w-md">
+            <div className="relative">
+              <Input
+                placeholder="Add an item..."
+                value={newItem}
+                onChange={(e) => setNewItem(e.target.value)}
+                className="h-11 pl-4 pr-12 rounded-xl border-border/50 bg-card shadow-sm focus-visible:border-primary/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                disabled={isAdding}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!newItem.trim() || isAdding}
+                className="absolute right-1.5 top-1.5 h-8 w-8 rounded-lg"
+              >
+                {isAdding ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
 
       {isEmpty ? (
@@ -403,6 +419,7 @@ export default function GroceryPage() {
                     onToggle={toggleItem}
                     onUpdate={updateItem}
                     onDelete={deleteItem}
+                    isShareView={isShareView}
                   />
                 ))}
               </div>
@@ -415,14 +432,16 @@ export default function GroceryPage() {
                 <span className="text-sm font-medium text-muted-foreground">
                   Completed ({checkedItems.length})
                 </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={clearChecked}
-                  className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
-                >
-                  Clear all
-                </Button>
+                {!isShareView && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearChecked}
+                    className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
+                  >
+                    Clear all
+                  </Button>
+                )}
               </div>
               <div className="flex flex-col gap-2">
                 {checkedItems.map((item) => (
@@ -432,6 +451,7 @@ export default function GroceryPage() {
                     onToggle={toggleItem}
                     onUpdate={updateItem}
                     onDelete={deleteItem}
+                    isShareView={isShareView}
                   />
                 ))}
               </div>

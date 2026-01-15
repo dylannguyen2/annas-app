@@ -31,6 +31,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('annas-app-theme');
+                  if (theme && ['default', 'cute', 'lavender', 'mint', 'devil'].includes(theme)) {
+                    document.documentElement.classList.add('theme-' + theme);
+                  } else {
+                    document.documentElement.classList.add('theme-default');
+                  }
+                } catch (e) {
+                  document.documentElement.classList.add('theme-default');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider
           attribute="class"

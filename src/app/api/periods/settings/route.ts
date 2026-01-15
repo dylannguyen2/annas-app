@@ -1,30 +1,35 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = getSupabaseAdmin()
 
   const { data: settings } = await supabase
     .from('cycle_settings')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .single()
 
   return NextResponse.json(settings || { average_cycle_length: 28, average_period_length: 5 })
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
 
   const body = await request.json()
   const { average_cycle_length, average_period_length } = body
@@ -32,16 +37,16 @@ export async function POST(request: Request) {
   const { data: existing } = await supabase
     .from('cycle_settings')
     .select('id')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .single()
 
   if (existing) {
     const { data: updated, error } = await supabase
       .from('cycle_settings')
-      .update({ 
-        average_cycle_length, 
+      .update({
+        average_cycle_length,
         average_period_length,
-        updated_at: new Date().toISOString() 
+        updated_at: new Date().toISOString()
       })
       .eq('id', existing.id)
       .select()
@@ -56,7 +61,7 @@ export async function POST(request: Request) {
   const { data: newSettings, error } = await supabase
     .from('cycle_settings')
     .insert({
-      user_id: user.id,
+      user_id: effectiveUser.userId,
       average_cycle_length: average_cycle_length || 28,
       average_period_length: average_period_length || 5,
     })

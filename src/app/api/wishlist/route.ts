@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 
 interface OpenGraphData {
@@ -165,17 +166,17 @@ async function extractMetadata(url: string): Promise<OpenGraphData> {
 }
 
 export async function GET() {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = getSupabaseAdmin()
 
   const { data: items, error } = await supabase
     .from('wishlist_items')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -186,12 +187,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
 
   const body = await request.json()
   const { url, title, image_url, price, currency, site_name, notes } = body
@@ -224,7 +229,7 @@ export async function POST(request: Request) {
   const { data: newItem, error } = await supabase
     .from('wishlist_items')
     .insert({
-      user_id: user.id,
+      user_id: effectiveUser.userId,
       url,
       title: finalTitle,
       image_url: finalImage,

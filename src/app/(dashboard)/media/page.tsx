@@ -47,6 +47,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useShareView } from '@/lib/share-view/context'
 
 const TABS = [
   { id: 'want_to_watch', label: 'Want to Watch', icon: Bookmark },
@@ -406,7 +407,7 @@ function SearchMediaDialog({
                 </div>
 
                 {manualMedia.status === 'finished' && (
-                  <div className="grid grid-cols-2 gap-4 pt-2 animate-in slide-in-from-top-2">
+                  <div className="grid grid-cols-2 gap-4 pt-2">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Rating</Label>
                       <div className="h-10 flex items-center px-3 rounded-md border border-input bg-secondary/20">
@@ -636,14 +637,16 @@ function SearchMediaDialog({
   )
 }
 
-function MediaCard({ 
-  item, 
-  updateMedia, 
-  deleteMedia 
-}: { 
+function MediaCard({
+  item,
+  updateMedia,
+  deleteMedia,
+  isReadOnly = false
+}: {
   item: Media
   updateMedia: (id: string, data: Partial<Media>) => Promise<Media>
   deleteMedia: (id: string) => Promise<void>
+  isReadOnly?: boolean
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [editStarted, setEditStarted] = useState(item.started_at ? item.started_at.split('T')[0] : '')
@@ -731,78 +734,80 @@ function MediaCard({
           </Badge>
         </div>
         
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 p-4 backdrop-blur-[2px]">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-md">
-                {item.status === 'want_to_watch' ? 'Want to Watch' : 
-                 item.status === 'watching' ? 'Watching' : 'Finished'}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-40">
-              <DropdownMenuItem onClick={() => handleStatusChange('want_to_watch')} className="cursor-pointer">
-                <Bookmark className="mr-2 h-4 w-4" /> Want to Watch
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange('watching')} className="cursor-pointer">
-                <PlayCircle className="mr-2 h-4 w-4" /> Watching
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange('finished')} className="cursor-pointer">
-                <CheckCircle2 className="mr-2 h-4 w-4" /> Finished
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <div className="flex gap-2">
-            <Popover open={editOpen} onOpenChange={setEditOpen}>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="h-8 w-8 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-                >
-                  <Pencil className="h-4 w-4" />
+        {!isReadOnly && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 p-4 backdrop-blur-[2px]">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-md">
+                  {item.status === 'want_to_watch' ? 'Want to Watch' :
+                   item.status === 'watching' ? 'Watching' : 'Finished'}
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72" align="center">
-                <div className="space-y-4">
-                  <h4 className="font-medium text-sm">Edit Dates</h4>
-                  <div className="space-y-2">
-                    <Label htmlFor="started" className="text-xs">Started Watching</Label>
-                    <Input
-                      id="started"
-                      type="date"
-                      value={editStarted}
-                      onChange={(e) => setEditStarted(e.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="finished" className="text-xs">Finished Watching</Label>
-                    <Input
-                      id="finished"
-                      type="date"
-                      value={editFinished}
-                      onChange={(e) => setEditFinished(e.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                  <Button onClick={handleSaveDates} size="sm" className="w-full">
-                    Save
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-40">
+                <DropdownMenuItem onClick={() => handleStatusChange('want_to_watch')} className="cursor-pointer">
+                  <Bookmark className="mr-2 h-4 w-4" /> Want to Watch
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('watching')} className="cursor-pointer">
+                  <PlayCircle className="mr-2 h-4 w-4" /> Watching
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('finished')} className="cursor-pointer">
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> Finished
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            <Button 
-              variant="destructive" 
-              size="icon" 
-              className="h-8 w-8 rounded-full bg-red-500/80 hover:bg-red-600 border-none"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Popover open={editOpen} onOpenChange={setEditOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 rounded-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72" align="center">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">Edit Dates</h4>
+                    <div className="space-y-2">
+                      <Label htmlFor="started" className="text-xs">Started Watching</Label>
+                      <Input
+                        id="started"
+                        type="date"
+                        value={editStarted}
+                        onChange={(e) => setEditStarted(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="finished" className="text-xs">Finished Watching</Label>
+                      <Input
+                        id="finished"
+                        type="date"
+                        value={editFinished}
+                        onChange={(e) => setEditFinished(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <Button onClick={handleSaveDates} size="sm" className="w-full">
+                      Save
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Button
+                variant="destructive"
+                size="icon"
+                className="h-8 w-8 rounded-full bg-red-500/80 hover:bg-red-600 border-none"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="absolute top-2 right-2 opacity-100 group-hover:opacity-0 transition-opacity">
           {item.status === 'watching' && (
@@ -830,8 +835,8 @@ function MediaCard({
         
         {item.status === 'finished' && (
           <div className="pt-1 space-y-1">
-            <StarRating rating={item.rating} onChange={handleRatingChange} />
-            <Popover>
+            <StarRating rating={item.rating} onChange={isReadOnly ? undefined : handleRatingChange} readonly={isReadOnly} />
+            {!isReadOnly && <Popover>
               <PopoverTrigger asChild>
                 <button className="text-xs text-muted-foreground/70 hover:text-foreground cursor-pointer flex items-center gap-1 transition-colors">
                   <Calendar className="h-3 w-3" />
@@ -846,8 +851,8 @@ function MediaCard({
                     defaultValue={item.finished_at ? item.finished_at.split('T')[0] : ''}
                     onChange={async (e) => {
                       try {
-                        await updateMedia(item.id, { 
-                          finished_at: e.target.value ? new Date(e.target.value).toISOString() : null 
+                        await updateMedia(item.id, {
+                          finished_at: e.target.value ? new Date(e.target.value).toISOString() : null
                         })
                         toast.success('Date updated')
                       } catch {
@@ -858,7 +863,13 @@ function MediaCard({
                   />
                 </div>
               </PopoverContent>
-            </Popover>
+            </Popover>}
+            {isReadOnly && item.finished_at && (
+              <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {formatDate(item.finished_at)}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -890,8 +901,8 @@ function WatchingStats({ media }: { media: Media[] }) {
   if (media.length === 0) return null
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50">
+    <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory sm:grid sm:grid-cols-4 sm:overflow-visible sm:pb-0 mb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50 min-w-[140px] flex-shrink-0 snap-start sm:min-w-0 sm:flex-shrink">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <Calendar className="h-3.5 w-3.5" />
           <span className="text-xs font-medium">This Month</span>
@@ -900,7 +911,7 @@ function WatchingStats({ media }: { media: Media[] }) {
         <p className="text-xs text-muted-foreground">titles finished</p>
       </div>
       
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50">
+      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50 min-w-[140px] flex-shrink-0 snap-start sm:min-w-0 sm:flex-shrink">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <TrendingUp className="h-3.5 w-3.5" />
           <span className="text-xs font-medium">This Year</span>
@@ -909,7 +920,7 @@ function WatchingStats({ media }: { media: Media[] }) {
         <p className="text-xs text-muted-foreground">titles finished</p>
       </div>
       
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50">
+      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50 min-w-[140px] flex-shrink-0 snap-start sm:min-w-0 sm:flex-shrink">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <PlayCircle className="h-3.5 w-3.5" />
           <span className="text-xs font-medium">Watching</span>
@@ -918,7 +929,7 @@ function WatchingStats({ media }: { media: Media[] }) {
         <p className="text-xs text-muted-foreground">in progress</p>
       </div>
       
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50">
+      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50 min-w-[140px] flex-shrink-0 snap-start sm:min-w-0 sm:flex-shrink">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <Star className="h-3.5 w-3.5" />
           <span className="text-xs font-medium">Avg Rating</span>
@@ -944,6 +955,7 @@ type RatingFilter = 'all' | '5' | '4+' | '3+' | 'unrated'
 
 export default function MediaPage() {
   const { media, loading, searchMedia, addMedia, updateMedia, deleteMedia } = useMedia()
+  const { isShareView } = useShareView()
   const [activeTab, setActiveTab] = useState<MediaStatus>('want_to_watch')
   const [typeFilter, setTypeFilter] = useState<'all' | MediaType>('all')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -952,6 +964,7 @@ export default function MediaPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 
   const getMediaByStatus = (status: MediaStatus) => {
     let filtered = media.filter(m => m.status === status)
@@ -1026,27 +1039,32 @@ export default function MediaPage() {
   const activeMedia = getMediaByStatus(activeTab)
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="sticky top-0 z-10 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-        <div className="container mx-auto max-w-7xl px-4 md:px-6">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
               <Clapperboard className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold tracking-tight">Movies & TV</h1>
             </div>
-            
-            <Button 
-              onClick={() => setIsSearchOpen(true)}
-              className="gap-2 rounded-full px-4 shadow-sm hover:shadow-md transition-all"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Title</span>
-              <span className="inline sm:hidden">Add</span>
-            </Button>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Movies & TV</h1>
           </div>
+          <p className="text-muted-foreground text-lg">Track what you&apos;re watching.</p>
+        </div>
+            
+        {!isShareView && (
+          <Button
+            onClick={() => setIsSearchOpen(true)}
+            className="gap-2 rounded-full px-4 shadow-sm hover:shadow-md transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Title</span>
+            <span className="inline sm:hidden">Add</span>
+          </Button>
+        )}
+      </div>
 
-          <div className="flex items-center justify-between gap-2 pb-4">
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+      <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {TABS.map((tab) => {
                 const Icon = tab.icon
                 const count = media.filter(m => m.status === tab.id && (typeFilter === 'all' || m.media_type === typeFilter)).length
@@ -1079,6 +1097,38 @@ export default function MediaPage() {
             </div>
             
             <div className="flex items-center gap-1 shrink-0">
+              {mobileSearchOpen ? (
+                <div className="relative sm:hidden w-[160px] mr-1">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search..."
+                    className="h-8 w-full pl-8 pr-8 text-xs bg-background/50 focus:bg-background transition-colors"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      setMobileSearchOpen(false)
+                      setSearchQuery('')
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 sm:hidden"
+                  onClick={() => setMobileSearchOpen(true)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              )}
+              
               <div className="relative hidden sm:block w-[180px] mr-1">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
@@ -1097,41 +1147,12 @@ export default function MediaPage() {
                   </button>
                 )}
               </div>
-              <div className="relative sm:hidden w-[120px] mr-1">
-                <Input
-                  type="text"
-                  placeholder="Search..."
-                  className="h-8 w-full px-2 text-xs bg-background/50 focus:bg-background transition-colors"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className={cn("h-8 gap-1 text-xs", typeFilter !== 'all' && "text-primary")}>
-                    {typeFilter === 'movie' ? <Film className="h-3.5 w-3.5" /> : typeFilter === 'tv' ? <Tv className="h-3.5 w-3.5" /> : <Clapperboard className="h-3.5 w-3.5" />}
-                    <span className="hidden sm:inline">Type</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-32">
-                  <DropdownMenuItem onClick={() => setTypeFilter('all')} className={cn("cursor-pointer", typeFilter === 'all' && "bg-secondary")}>
-                    All
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTypeFilter('movie')} className={cn("cursor-pointer", typeFilter === 'movie' && "bg-secondary")}>
-                    <Film className="mr-2 h-4 w-4" /> Movies
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTypeFilter('tv')} className={cn("cursor-pointer", typeFilter === 'tv' && "bg-secondary")}>
-                    <Tv className="mr-2 h-4 w-4" /> TV Shows
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+                  <Button variant="ghost" size="sm" className="hidden sm:flex h-8 gap-1 text-xs">
                     <ArrowUpDown className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Sort</span>
+                    <span>Sort</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
@@ -1239,10 +1260,7 @@ export default function MediaPage() {
               )}
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="container mx-auto max-w-7xl px-4 py-8 md:px-6">
         <WatchingStats media={media} />
         
         {loading ? (
@@ -1258,11 +1276,11 @@ export default function MediaPage() {
         ) : activeMedia.length > 0 ? (
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {activeMedia.map((item) => (
-              <MediaCard key={item.id} item={item} updateMedia={updateMedia} deleteMedia={deleteMedia} />
+              <MediaCard key={item.id} item={item} updateMedia={updateMedia} deleteMedia={deleteMedia} isReadOnly={isShareView} />
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="mb-6 rounded-full bg-secondary/50 p-6 ring-1 ring-border/50">
               <Clapperboard className="h-12 w-12 text-muted-foreground/40" />
             </div>
@@ -1276,13 +1294,14 @@ export default function MediaPage() {
               {activeTab === 'watching' && "When you start watching something, move it here to track your progress."}
               {activeTab === 'finished' && "Finished titles will appear here. You can rate them and keep a history of what you've watched."}
             </p>
-            <Button onClick={() => setIsSearchOpen(true)} className="gap-2">
-              <Search className="h-4 w-4" />
-              Find Movies & TV Shows
-            </Button>
+            {!isShareView && (
+              <Button onClick={() => setIsSearchOpen(true)} className="gap-2">
+                <Search className="h-4 w-4" />
+                Find Movies & TV Shows
+              </Button>
+            )}
           </div>
         )}
-      </div>
 
       <SearchMediaDialog 
         open={isSearchOpen} 

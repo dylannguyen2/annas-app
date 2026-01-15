@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useHabits } from '@/hooks/use-habits'
+import { useShareView } from '@/lib/share-view/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -9,7 +10,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { HabitForm } from '@/components/forms/habit-form'
 import { HabitCard } from '@/components/dashboard/habit-card'
 import { HabitToggle } from '@/components/dashboard/habit-toggle'
-import { Plus, Loader2, CalendarIcon } from 'lucide-react'
+import { Plus, CalendarIcon, CheckSquare } from 'lucide-react'
+import { HabitsSkeleton } from '@/components/dashboard/habits-skeleton'
 import { format } from 'date-fns'
 import { formatDate } from '@/lib/utils/dates'
 
@@ -25,7 +27,8 @@ export default function HabitsPage() {
     getCompletionDates,
     isCompleted,
   } = useHabits()
-  
+  const { isShareView } = useShareView()
+
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [calendarOpen, setCalendarOpen] = useState(false)
   
@@ -42,11 +45,7 @@ export default function HabitsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
+    return <HabitsSkeleton />
   }
 
   if (error) {
@@ -61,34 +60,41 @@ export default function HabitsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Habits</h2>
-          <p className="text-muted-foreground">
-            Track your daily habits and build streaks
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <CheckSquare className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">Habits</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Track your daily habits and build streaks.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                {selectedDate ? format(selectedDate, 'MMM d') : 'Log past date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                disabled={(date) => date > new Date()}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <HabitForm onSubmit={createHabit} />
-        </div>
+        {!isShareView && (
+          <div className="flex items-center gap-2">
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {selectedDate ? format(selectedDate, 'MMM d') : 'Log past date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            <HabitForm onSubmit={createHabit} />
+          </div>
+        )}
       </div>
       
       {selectedDate && selectedDateStr && (
@@ -116,6 +122,7 @@ export default function HabitsPage() {
                       habit={habit}
                       isCompleted={completed}
                       onToggle={() => toggleCompletion(habit.id, selectedDateStr, !completed)}
+                      isReadOnly={isShareView}
                     />
                   )
                 })}
@@ -131,17 +138,21 @@ export default function HabitsPage() {
             <div className="text-6xl mb-4">🎯</div>
             <h3 className="text-xl font-semibold mb-2">No habits yet</h3>
             <p className="text-muted-foreground text-center mb-6 max-w-sm">
-              Start building better habits today. Create your first habit to begin tracking!
+              {isShareView
+                ? 'No habits have been created yet.'
+                : 'Start building better habits today. Create your first habit to begin tracking!'}
             </p>
-            <HabitForm
-              onSubmit={createHabit}
-              trigger={
-                <Button size="lg">
-                  <Plus className="mr-2 h-5 w-5" />
-                  Create Your First Habit
-                </Button>
-              }
-            />
+            {!isShareView && (
+              <HabitForm
+                onSubmit={createHabit}
+                trigger={
+                  <Button size="lg">
+                    <Plus className="mr-2 h-5 w-5" />
+                    Create Your First Habit
+                  </Button>
+                }
+              />
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -155,20 +166,23 @@ export default function HabitsPage() {
                 onToggle={toggleCompletion}
                 onUpdate={updateHabit}
                 onDelete={deleteHabit}
+                isReadOnly={isShareView}
               />
             ))}
           </div>
-          <div className="flex justify-center">
-            <HabitForm
-              onSubmit={createHabit}
-              trigger={
-                <Button variant="outline" size="lg" className="gap-2">
-                  <Plus className="h-5 w-5" />
-                  Add New Habit
-                </Button>
-              }
-            />
-          </div>
+          {!isShareView && (
+            <div className="flex justify-center">
+              <HabitForm
+                onSubmit={createHabit}
+                trigger={
+                  <Button variant="outline" size="lg" className="gap-2">
+                    <Plus className="h-5 w-5" />
+                    Add New Habit
+                  </Button>
+                }
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

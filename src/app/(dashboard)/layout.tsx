@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { MobileNav } from '@/components/layout/mobile-nav'
@@ -8,6 +10,7 @@ import { SidebarProvider, MainContent } from '@/components/layout/layout-client'
 import { CommandPalette } from '@/components/command-palette'
 import { ShareViewProvider } from '@/lib/share-view/context'
 import { ShareViewBanner } from '@/components/layout/share-view-banner'
+import { NavigationProgress } from '@/components/layout/navigation-progress'
 
 async function getShareViewData() {
   const cookieStore = await cookies()
@@ -18,23 +21,35 @@ async function getShareViewData() {
     return null
   }
 
-  const supabase = await createClient()
-  const { data: shareLink } = await supabase
+  const supabase = getSupabaseAdmin()
+
+  const { data: shareLink, error } = await supabase
     .from('share_links')
-    .select('*, profiles!share_links_owner_id_fkey(display_name)')
+    .select('*')
     .eq('token', shareToken)
     .eq('owner_id', shareOwnerId)
     .single()
 
-  if (!shareLink) return null
-  
+  if (error || !shareLink) {
+    return null
+  }
+
   const isExpired = shareLink.expires_at && new Date(shareLink.expires_at) < new Date()
-  if (isExpired) return null
+  if (isExpired) {
+    return null
+  }
+
+  // Get owner name separately
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', shareOwnerId)
+    .single()
 
   return {
     isShareView: true,
     allowedPages: shareLink.allowed_pages as string[],
-    ownerName: (shareLink.profiles as { display_name: string | null })?.display_name || 'Someone',
+    ownerName: profile?.display_name || 'Someone',
   }
 }
 
@@ -54,6 +69,9 @@ export default async function DashboardLayout({
   return (
     <ShareViewProvider initialShareView={shareViewData ?? undefined}>
       <SidebarProvider>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <div className="min-h-screen bg-background">
           <Sidebar />
           <MainContent>

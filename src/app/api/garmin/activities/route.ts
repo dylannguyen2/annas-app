@@ -1,15 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 import { createGarminClientFromTokens, fetchActivities, parseActivityData, getGarminTokens } from '@/lib/garmin/client'
 import { decryptTokens, encryptTokens } from '@/lib/garmin/encryption'
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
 
   const body = await request.json()
   const { start = 0, limit = 20 } = body
@@ -17,7 +22,7 @@ export async function POST(request: Request) {
   const { data: credentials } = await supabase
     .from('garmin_credentials')
     .select('oauth1_token, oauth2_token')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .single()
 
   if (!credentials) {
@@ -47,7 +52,7 @@ export async function POST(request: Request) {
           oauth2_token: encryptTokens(newTokens.oauth2Token),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUser.userId)
     }
 
     const activities = rawActivities.map(parseActivityData)
@@ -56,7 +61,7 @@ export async function POST(request: Request) {
       const { data: existing } = await supabase
         .from('activities')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', effectiveUser.userId)
         .eq('garmin_activity_id', activity.garmin_activity_id)
         .single()
 
@@ -68,7 +73,7 @@ export async function POST(request: Request) {
       } else {
         await supabase
           .from('activities')
-          .insert({ ...activity, user_id: user.id, synced_at: new Date().toISOString() })
+          .insert({ ...activity, user_id: effectiveUser.userId, synced_at: new Date().toISOString() })
       }
     }
 
@@ -86,12 +91,12 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const effectiveUser = await getEffectiveUser()
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const supabase = getSupabaseAdmin()
 
   const { searchParams } = new URL(request.url)
   const limit = parseInt(searchParams.get('limit') || '50')
@@ -101,7 +106,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('activities')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .order('start_time', { ascending: false })
     .range(offset, offset + limit - 1)
 

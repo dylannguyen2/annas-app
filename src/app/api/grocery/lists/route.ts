@@ -1,18 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getEffectiveUser } from '@/lib/get-effective-user'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const effectiveUser = await getEffectiveUser()
 
-  if (!user) {
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const supabase = getSupabaseAdmin()
   const { data: lists, error } = await supabase
     .from('grocery_lists')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', effectiveUser.userId)
     .order('created_at', { ascending: true })
 
   if (error) {
@@ -23,13 +24,17 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const effectiveUser = await getEffectiveUser()
 
-  if (!user) {
+  if (!effectiveUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (effectiveUser.isReadOnly) {
+    return NextResponse.json({ error: 'Read-only access' }, { status: 403 })
+  }
+
+  const supabase = getSupabaseAdmin()
   const body = await request.json()
   const { name } = body
 
@@ -40,7 +45,7 @@ export async function POST(request: Request) {
   const { data: list, error } = await supabase
     .from('grocery_lists')
     .insert({
-      user_id: user.id,
+      user_id: effectiveUser.userId,
       name: name.trim(),
     })
     .select()
