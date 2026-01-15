@@ -36,6 +36,8 @@ export default function SettingsPage() {
 
   const { data: demoSession, mutate: mutateDemoSession } = useSWR<{
     active: boolean
+    expired?: boolean
+    unauthorized?: boolean
     token?: string
     url?: string
     expires_at?: string
@@ -285,7 +287,7 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {subscription ? (
+          {subscription?.status ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -331,7 +333,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {demoSession !== undefined && (
+      {demoSession !== undefined && !demoSession.unauthorized && (
         <Card>
           <CardHeader>
             <CardTitle>Demo Mode</CardTitle>
@@ -342,9 +344,11 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             {demoSession?.active ? (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-primary">
+                <div className={`flex items-center gap-2 ${demoSession.expired ? 'text-destructive' : 'text-primary'}`}>
                   <Share2 className="h-5 w-5" />
-                  <span className="font-medium">Demo session active</span>
+                  <span className="font-medium">
+                    {demoSession.expired ? 'Demo session expired' : 'Demo session active'}
+                  </span>
                 </div>
                 
                 <div className="p-3 bg-muted rounded-lg">
@@ -353,7 +357,7 @@ export default function SettingsPage() {
                 </div>
 
                 <p className="text-sm text-muted-foreground">
-                  Expires: {demoSession.expires_at && new Date(demoSession.expires_at).toLocaleString()}
+                  {demoSession.expired ? 'Expired' : 'Expires'}: {demoSession.expires_at && new Date(demoSession.expires_at).toLocaleString()}
                 </p>
 
                 <div className="flex gap-2">
@@ -388,7 +392,9 @@ export default function SettingsPage() {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  Ending the demo will delete all data created during this session.
+                  {demoSession.expired 
+                    ? 'This session has expired. End it to clean up demo data and start a new one.'
+                    : 'Ending the demo will delete all data created during this session.'}
                 </p>
               </div>
             ) : (

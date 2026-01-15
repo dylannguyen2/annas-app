@@ -61,7 +61,7 @@ export async function GET() {
   
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || user.id !== DEMO_OWNER_UID) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ active: false, unauthorized: true })
   }
 
   const adminSupabase = getSupabaseAdmin()
@@ -72,7 +72,7 @@ export async function GET() {
     .is('ended_at', null)
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (!session) {
     return NextResponse.json({ active: false })
@@ -105,7 +105,7 @@ export async function DELETE() {
     .select('*')
     .eq('owner_id', user.id)
     .is('ended_at', null)
-    .single()
+    .maybeSingle()
 
   if (queryError || !session) {
     console.error('Demo session query error:', queryError)
