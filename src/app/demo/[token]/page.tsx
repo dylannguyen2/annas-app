@@ -26,7 +26,7 @@ export default function DemoPage() {
         if (data.valid) {
           setStatus('signing-in')
           setExpiresAt(data.expires_at)
-          
+
           const signInRes = await fetch('/api/demo/signin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -42,6 +42,12 @@ export default function DemoPage() {
               access_token: signInData.access_token,
               refresh_token: signInData.refresh_token
             })
+
+            // Set demo cookies for middleware to bypass subscription check
+            const cookieExpires = new Date(data.expires_at).toUTCString()
+            document.cookie = `demo_token=${token}; path=/; expires=${cookieExpires}`
+            document.cookie = `demo_owner_id=${data.owner_id}; path=/; expires=${cookieExpires}`
+
             setTimeout(() => router.push('/dashboard'), 1000)
           } else {
             setStatus('invalid')

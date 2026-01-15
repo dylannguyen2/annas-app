@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   '/auth',
   '/pricing',
   '/api/webhooks',
+  '/api/demo',
   '/demo',
   '/share',
 ]
