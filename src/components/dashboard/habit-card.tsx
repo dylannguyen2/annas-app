@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Check, MoreVertical, Pencil, Trash2, Flame } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatDate, getWeekDates, getDayName, getDayNumber, isToday, calculateStreak } from '@/lib/utils/dates'
+import { formatDate, getWeekDates, getDayName, getDayNumber, isToday, isFutureDate, calculateStreak } from '@/lib/utils/dates'
 import { HabitForm } from '@/components/forms/habit-form'
 import type { Habit } from '@/types/database'
 
@@ -133,20 +133,22 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete,
         {weekDates.map((date) => {
           const isComplete = completedDates.includes(date)
           const isTodayDate = isToday(date)
+          const isFuture = isFutureDate(date)
           const isLoading = loading === date
+          const isDisabled = isLoading || isReadOnly || isFuture
 
           return (
             <button
               key={date}
-              onClick={isReadOnly ? undefined : () => handleToggle(date)}
-              disabled={isLoading || isReadOnly}
+              onClick={isDisabled ? undefined : () => handleToggle(date)}
+              disabled={isDisabled}
               className={cn(
                 'flex flex-col items-center py-2 rounded-lg transition-all',
                 isTodayDate && 'ring-2 ring-primary ring-offset-1',
                 isComplete
                   ? 'bg-primary/20'
-                  : !isReadOnly && 'hover:bg-accent',
-                isReadOnly && 'cursor-default'
+                  : !isDisabled && 'hover:bg-accent',
+                isFuture && 'opacity-40 cursor-not-allowed'
               )}
             >
               <span className="text-xs text-muted-foreground">{getDayName(date)}</span>

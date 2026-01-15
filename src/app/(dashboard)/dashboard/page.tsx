@@ -166,6 +166,105 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      <div className="space-y-6 md:hidden">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex items-center gap-3">
+              <CardTitle>Today&apos;s Habits</CardTitle>
+              {totalHabits > 0 && (
+                <span className="text-xs font-medium px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                  {completedToday}/{totalHabits}
+                </span>
+              )}
+            </div>
+            {totalHabits > 0 && (
+              <HabitForm
+                onSubmit={createHabit}
+                trigger={
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 hover:text-primary">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                }
+              />
+            )}
+          </CardHeader>
+          <CardContent>
+            {habits.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-3">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <h3 className="font-semibold mb-1 text-sm">Start Your Journey</h3>
+                <p className="text-muted-foreground mb-4 text-xs">
+                  Small habits lead to big changes.
+                </p>
+                <HabitForm
+                  onSubmit={createHabit}
+                  trigger={
+                    <Button size="sm" className="rounded-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create First Habit
+                    </Button>
+                  }
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {habits.slice(0, 5).map((habit) => (
+                  <div 
+                    key={habit.id} 
+                    className="transition-colors hover:bg-muted/50 rounded-lg -mx-2 px-2"
+                  >
+                    <HabitToggle
+                      habit={habit}
+                      isCompleted={isCompleted(habit.id, today)}
+                      onToggle={() => toggleCompletion(habit.id, today, !isCompleted(habit.id, today))}
+                    />
+                  </div>
+                ))}
+                {habits.length > 5 && (
+                  <Link href="/habits" className="block pt-2">
+                    <Button variant="ghost" size="sm" className="w-full text-muted-foreground hover:text-primary">
+                      View all {habits.length} habits
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <Smile className="h-4 w-4 text-primary" />
+              Quick Mood Check
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center min-h-[140px]">
+            {todayMood?.mood ? (
+              <div className="text-center">
+                <div className="text-4xl mb-3">{MOOD_EMOJIS[todayMood.mood]}</div>
+                <p className="text-base font-medium text-foreground">
+                  Feeling <span className="text-primary">{['', 'awful', 'bad', 'okay', 'good', 'great'][todayMood.mood]}</span>
+                </p>
+                <Link href="/mood">
+                  <Button variant="outline" size="sm" className="mt-3 rounded-full">
+                    Update
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="w-full">
+                 <p className="text-center text-muted-foreground mb-4 text-sm">How are you feeling?</p>
+                 <MoodPicker onSave={handleSaveMood} compact />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
         <div className="space-y-6">
            <CircularHabitTracker 
@@ -196,7 +295,7 @@ export default function DashboardPage() {
            </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="hidden md:block space-y-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div className="flex items-center gap-3">

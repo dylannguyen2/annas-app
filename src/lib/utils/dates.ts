@@ -65,3 +65,7 @@ export function getDayNumber(date: string): string {
 export function isToday(date: string): boolean {
   return date === formatDate(new Date())
 }
+
+export function isFutureDate(date: string): boolean {
+  return date > formatDate(new Date())
+}

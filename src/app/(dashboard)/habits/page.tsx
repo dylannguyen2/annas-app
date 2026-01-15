@@ -74,7 +74,7 @@ export default function HabitsPage() {
           </p>
         </div>
         {!isShareView && (
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
@@ -171,7 +171,26 @@ export default function HabitsPage() {
             ))}
           </div>
           {!isShareView && (
-            <div className="flex justify-center">
+            <div className="flex flex-wrap justify-center gap-2">
+              <div className="sm:hidden">
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="lg" className="gap-2">
+                      <CalendarIcon className="h-5 w-5" />
+                      {selectedDate ? format(selectedDate, 'MMM d') : 'Log past date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="center">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={handleDateSelect}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
               <HabitForm
                 onSubmit={createHabit}
                 trigger={
