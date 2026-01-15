@@ -51,8 +51,12 @@ import { cn } from '@/lib/utils'
 const TABS = [
   { id: 'want_to_read', label: 'Want to Read', icon: BookMarked },
   { id: 'reading', label: 'Reading', icon: BookOpen },
-  { id: 'finished', label: 'Finished', icon: CheckCircle2 },
+  { id: 'read', label: 'Read', icon: CheckCircle2 },
+  { id: 'listened', label: 'Listened', icon: Headphones },
 ] as const
+
+type TabStatus = 'want_to_read' | 'reading' | 'read' | 'listened'
+type AddStatus = 'want_to_read' | 'reading' | 'read' | 'listened'
 
 const FORMATS = [
   { id: 'book', label: 'Book', icon: BookText, shortLabel: 'Book' },
@@ -187,7 +191,7 @@ function SearchBookDialog({
     title: '',
     author: '',
     cover_url: '',
-    status: 'want_to_read' as BookStatus,
+    status: 'want_to_read' as AddStatus,
     format: 'book' as BookFormat,
     rating: 0,
     finished_at: new Date().toISOString().split('T')[0]
@@ -287,17 +291,21 @@ function SearchBookDialog({
     }
 
     try {
+      const isFinished = manualBook.status === 'read' || manualBook.status === 'listened'
+      const dbStatus: BookStatus = isFinished ? 'finished' : (manualBook.status as BookStatus)
+      const format: BookFormat = manualBook.status === 'listened' ? 'audiobook' : manualBook.format
+
       const bookData: Partial<Book> & { title: string } = {
         title: manualBook.title,
         author: manualBook.author,
         cover_url: manualBook.cover_url,
-        status: manualBook.status,
-        format: manualBook.format,
+        status: dbStatus,
+        format: format,
       }
 
       if (manualBook.status === 'reading') {
         bookData.started_at = new Date().toISOString()
-      } else if (manualBook.status === 'finished') {
+      } else if (isFinished) {
         const date = manualBook.finished_at ? new Date(manualBook.finished_at) : new Date()
         bookData.finished_at = date.toISOString()
         bookData.started_at = date.toISOString()
@@ -398,23 +406,15 @@ function SearchBookDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Format</Label>
-                  <FormatSelector 
-                    value={manualBook.format} 
-                    onChange={(f) => setManualBook({ ...manualBook, format: f })} 
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label className="text-sm font-medium">Status</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-2">
                     {TABS.map((tab) => {
                       const Icon = tab.icon
                       const isSelected = manualBook.status === tab.id
                       return (
                         <div
                           key={tab.id}
-                          onClick={() => setManualBook({ ...manualBook, status: tab.id as BookStatus })}
+                          onClick={() => setManualBook({ ...manualBook, status: tab.id as AddStatus })}
                           className={cn(
                             "cursor-pointer flex flex-col items-center gap-2 p-3 rounded-xl border transition-all",
                             isSelected 
@@ -430,7 +430,17 @@ function SearchBookDialog({
                   </div>
                 </div>
 
-                {manualBook.status === 'finished' && (
+                {manualBook.status !== 'listened' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Format</Label>
+                    <FormatSelector 
+                      value={manualBook.format} 
+                      onChange={(f) => setManualBook({ ...manualBook, format: f })} 
+                    />
+                  </div>
+                )}
+
+                {(manualBook.status === 'read' || manualBook.status === 'listened') && (
                   <div className="grid grid-cols-2 gap-4 pt-2 animate-in slide-in-from-top-2">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Rating</Label>
@@ -653,18 +663,25 @@ function BookCard({
   const [editFinished, setEditFinished] = useState(book.finished_at ? book.finished_at.split('T')[0] : '')
   const [editFormat, setEditFormat] = useState<BookFormat>(book.format || 'book')
 
-  const handleStatusChange = async (newStatus: BookStatus) => {
+  const handleStatusChange = async (newStatus: TabStatus) => {
     try {
-      const updates: Partial<Book> = { status: newStatus }
+      const isFinishing = newStatus === 'read' || newStatus === 'listened'
+      const dbStatus: BookStatus = isFinishing ? 'finished' : (newStatus as BookStatus)
+      const updates: Partial<Book> = { status: dbStatus }
       
       if (newStatus === 'reading' && !book.started_at) {
         updates.started_at = new Date().toISOString()
       }
       
-      if (newStatus === 'finished' && !book.finished_at) {
-        updates.finished_at = new Date().toISOString()
-        if (!book.started_at) {
-          updates.started_at = new Date().toISOString()
+      if (isFinishing) {
+        if (newStatus === 'listened') {
+          updates.format = 'audiobook'
+        }
+        if (!book.finished_at) {
+          updates.finished_at = new Date().toISOString()
+          if (!book.started_at) {
+            updates.started_at = new Date().toISOString()
+          }
         }
       }
       
@@ -732,7 +749,8 @@ function BookCard({
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white backdrop-blur-md">
                 {book.status === 'want_to_read' ? 'Want to Read' : 
-                 book.status === 'reading' ? 'Reading' : 'Finished'}
+                 book.status === 'reading' ? 'Reading' : 
+                 book.format === 'audiobook' ? 'Listened' : 'Read'}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="w-40">
@@ -742,8 +760,11 @@ function BookCard({
               <DropdownMenuItem onClick={() => handleStatusChange('reading')} className="cursor-pointer">
                 <BookOpen className="mr-2 h-4 w-4" /> Reading
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange('finished')} className="cursor-pointer">
-                <CheckCircle2 className="mr-2 h-4 w-4" /> Finished
+              <DropdownMenuItem onClick={() => handleStatusChange('read')} className="cursor-pointer">
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Read
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusChange('listened')} className="cursor-pointer">
+                <Headphones className="mr-2 h-4 w-4" /> Listened
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -941,21 +962,29 @@ function formatDate(dateString: string | null): string {
 
 type SortOption = 'newest' | 'oldest' | 'rating_high' | 'rating_low' | 'title'
 type RatingFilter = 'all' | '5' | '4+' | '3+' | 'unrated'
-type FormatFilter = 'all' | 'book' | 'ebook' | 'audiobook'
 
 export default function BooksPage() {
   const { books, loading, searchBooks, addBook, updateBook, deleteBook } = useBooks()
-  const [activeTab, setActiveTab] = useState<BookStatus>('want_to_read')
+  const [activeTab, setActiveTab] = useState<TabStatus>('want_to_read')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all')
-  const [formatFilter, setFormatFilter] = useState<FormatFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 
-  const getBooksByStatus = (status: BookStatus) => {
-    let filtered = books.filter(b => b.status === status)
+  const getBooksByStatus = (status: TabStatus) => {
+    let filtered: Book[]
+    
+    // Handle virtual statuses 'read' and 'listened'
+    if (status === 'read') {
+      filtered = books.filter(b => b.status === 'finished' && (b.format || 'book') !== 'audiobook')
+    } else if (status === 'listened') {
+      filtered = books.filter(b => b.status === 'finished' && b.format === 'audiobook')
+    } else {
+      filtered = books.filter(b => b.status === status)
+    }
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
@@ -965,11 +994,8 @@ export default function BooksPage() {
       )
     }
 
-    if (formatFilter !== 'all') {
-      filtered = filtered.filter(b => (b.format || 'book') === formatFilter)
-    }
-
-    if (status === 'finished') {
+    // Apply rating and date filters for read/listened tabs
+    if (status === 'read' || status === 'listened') {
       if (ratingFilter !== 'all') {
         filtered = filtered.filter(b => {
           if (ratingFilter === 'unrated') return !b.rating
@@ -1051,13 +1077,17 @@ export default function BooksPage() {
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
               {TABS.map((tab) => {
                 const Icon = tab.icon
-                const count = books.filter(b => b.status === tab.id).length
+                const count = tab.id === 'read' 
+                  ? books.filter(b => b.status === 'finished' && (b.format || 'book') !== 'audiobook').length
+                  : tab.id === 'listened'
+                  ? books.filter(b => b.status === 'finished' && b.format === 'audiobook').length
+                  : books.filter(b => b.status === tab.id).length
                 const isActive = activeTab === tab.id
                 
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as BookStatus)}
+                    onClick={() => setActiveTab(tab.id as TabStatus)}
                     className={cn(
                       "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 outline-hidden whitespace-nowrap cursor-pointer",
                       isActive 
@@ -1081,6 +1111,38 @@ export default function BooksPage() {
             </div>
             
             <div className="flex items-center gap-1 shrink-0">
+              {mobileSearchOpen ? (
+                <div className="relative sm:hidden w-[160px] mr-1 animate-in slide-in-from-right-2">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search..."
+                    className="h-8 w-full pl-8 pr-8 text-xs bg-background/50 focus:bg-background transition-colors"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      setMobileSearchOpen(false)
+                      setSearchQuery('')
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 sm:hidden"
+                  onClick={() => setMobileSearchOpen(true)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              )}
+              
               <div className="relative hidden sm:block w-[180px] mr-1">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
@@ -1099,21 +1161,12 @@ export default function BooksPage() {
                   </button>
                 )}
               </div>
-              <div className="relative sm:hidden w-[120px] mr-1">
-                 <Input
-                  type="text"
-                  placeholder="Search..."
-                  className="h-8 w-full px-2 text-xs bg-background/50 focus:bg-background transition-colors"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+                  <Button variant="ghost" size="sm" className="hidden sm:flex h-8 gap-1 text-xs">
                     <ArrowUpDown className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Sort</span>
+                    <span>Sort</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
@@ -1136,39 +1189,7 @@ export default function BooksPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className={cn("h-8 gap-1 text-xs", formatFilter !== 'all' && "text-primary")}>
-                    {formatFilter === 'all' ? (
-                      <BookText className="h-3.5 w-3.5" />
-                    ) : formatFilter === 'audiobook' ? (
-                      <Headphones className="h-3.5 w-3.5" />
-                    ) : formatFilter === 'ebook' ? (
-                      <Smartphone className="h-3.5 w-3.5" />
-                    ) : (
-                      <BookText className="h-3.5 w-3.5" />
-                    )}
-                    <span className="hidden sm:inline">Format</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem onClick={() => setFormatFilter('all')} className={cn("cursor-pointer", formatFilter === 'all' && "bg-secondary")}>
-                    All Formats
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setFormatFilter('book')} className={cn("cursor-pointer", formatFilter === 'book' && "bg-secondary")}>
-                    <BookText className="h-3.5 w-3.5 mr-2" /> Books
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFormatFilter('ebook')} className={cn("cursor-pointer", formatFilter === 'ebook' && "bg-secondary")}>
-                    <Smartphone className="h-3.5 w-3.5 mr-2" /> E-books
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFormatFilter('audiobook')} className={cn("cursor-pointer", formatFilter === 'audiobook' && "bg-secondary")}>
-                    <Headphones className="h-3.5 w-3.5 mr-2" /> Audiobooks
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              {activeTab === 'finished' && (
+              {(activeTab === 'read' || activeTab === 'listened') && (
                 <>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -1181,7 +1202,7 @@ export default function BooksPage() {
                       <div className="space-y-4">
                         <div className="space-y-1">
                           <h4 className="font-medium text-sm">Filter by Date</h4>
-                          <p className="text-xs text-muted-foreground">Show books finished within range</p>
+                          <p className="text-xs text-muted-foreground">Show books {activeTab === 'listened' ? 'listened' : 'read'} within range</p>
                         </div>
                         <div className="grid gap-4">
                           <div className="grid grid-cols-4 items-center gap-2">
@@ -1283,12 +1304,14 @@ export default function BooksPage() {
             <h3 className="mb-2 text-xl font-semibold text-foreground">
               {activeTab === 'want_to_read' && "Your reading list is empty"}
               {activeTab === 'reading' && "You're not reading anything right now"}
-              {activeTab === 'finished' && "You haven't finished any books yet"}
+              {activeTab === 'read' && "You haven't finished any books yet"}
+              {activeTab === 'listened' && "You haven't listened to any audiobooks yet"}
             </h3>
             <p className="mb-6 max-w-md text-muted-foreground">
               {activeTab === 'want_to_read' && "Search for books you want to read and add them to your collection to keep track of them."}
               {activeTab === 'reading' && "When you start reading a book, move it here to track your progress."}
-              {activeTab === 'finished' && "Finished books will appear here. You can rate them and keep a history of what you've read."}
+              {activeTab === 'read' && "Finished books will appear here. You can rate them and keep a history of what you've read."}
+              {activeTab === 'listened' && "Finished audiobooks will appear here. You can rate them and keep a history of what you've listened to."}
             </p>
             <Button onClick={() => setIsSearchOpen(true)} className="gap-2">
               <Search className="h-4 w-4" />

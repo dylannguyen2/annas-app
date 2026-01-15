@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useHabits } from '@/hooks/use-habits'
 import { useMoods } from '@/hooks/use-moods'
-import { useWorkouts } from '@/hooks/use-workouts'
+import { useAllWorkouts } from '@/hooks/use-all-workouts'
 import { useHealth } from '@/hooks/use-health'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import { MoodHeatmap } from '@/components/charts'
 import { CircularHabitTracker } from '@/components/dashboard/circular-habit-tracker'
 import { Moon, Footprints, Plus, ArrowRight, Dumbbell, Sun, Sparkles } from 'lucide-react'
 import { formatDate } from '@/lib/utils/dates'
+import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns'
 import Link from 'next/link'
 
 const MOOD_EMOJIS: Record<number, string> = {
@@ -35,7 +36,7 @@ const getGreeting = () => {
 export default function DashboardPage() {
   const { habits, completions, loading: habitsLoading, createHabit, toggleCompletion, isCompleted } = useHabits()
   const { moods, loading: moodsLoading, saveMood, getTodayMood } = useMoods()
-  const { workouts, loading: workoutsLoading } = useWorkouts()
+  const { workouts, loading: workoutsLoading } = useAllWorkouts()
   const { garminStatus, getTodayHealth, formatSleepDuration, loading: healthLoading } = useHealth()
 
   const today = formatDate(new Date())
@@ -46,12 +47,13 @@ export default function DashboardPage() {
   const greeting = getGreeting()
   const GreetingIcon = greeting.icon
 
+  const now = new Date()
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 })
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
+
   const thisWeekWorkouts = workouts.filter(w => {
-    const workoutDate = new Date(w.date + 'T00:00:00')
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
-    weekAgo.setHours(0, 0, 0, 0)
-    return workoutDate >= weekAgo
+    const workoutDate = w.startTime ? parseISO(w.startTime) : new Date(w.date + 'T00:00:00')
+    return isWithinInterval(workoutDate, { start: weekStart, end: weekEnd })
   })
 
   const handleSaveMood = async (data: { mood: number; energy: number; stress: number; notes?: string; date: Date }) => {
