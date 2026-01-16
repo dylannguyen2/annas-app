@@ -23,6 +23,7 @@ import {
   Clapperboard,
   Wallet,
   ShoppingCart,
+  Gift,
 } from 'lucide-react'
 
 const mainNavItems = [
@@ -32,6 +33,25 @@ const mainNavItems = [
   { name: 'Health', href: '/health', icon: Heart },
 ]
 
+const allNavItemsAlphabetical = [
+  { name: 'Books', href: '/books', icon: BookOpen },
+  { name: 'Budget', href: '/budget', icon: Wallet },
+  { name: 'Cycle', href: '/cycle', icon: Droplet },
+  { name: 'Grocery', href: '/grocery', icon: ShoppingCart },
+  { name: 'Habits', href: '/habits', icon: CheckSquare },
+  { name: 'Health', href: '/health', icon: Heart },
+  { name: 'History', href: '/history', icon: Calendar },
+  { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Insights', href: '/insights', icon: Lightbulb },
+  { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
+  { name: 'Media', href: '/media', icon: Clapperboard },
+  { name: 'Mood', href: '/mood', icon: Smile },
+  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Tasks', href: '/todos', icon: ListTodo },
+  { name: 'Wishlist', href: '/wishlist', icon: Gift },
+  { name: 'Workouts', href: '/workouts', icon: Dumbbell },
+]
+
 const moreNavItems = [
   { name: 'Tasks', href: '/todos', icon: ListTodo },
   { name: 'Meals', href: '/meals', icon: UtensilsCrossed },
@@ -39,6 +59,7 @@ const moreNavItems = [
   { name: 'Budget', href: '/budget', icon: Wallet },
   { name: 'Books', href: '/books', icon: BookOpen },
   { name: 'Media', href: '/media', icon: Clapperboard },
+  { name: 'Wishlist', href: '/wishlist', icon: Gift },
   { name: 'Workouts', href: '/workouts', icon: Dumbbell },
   { name: 'Cycle', href: '/cycle', icon: Droplet },
   { name: 'Insights', href: '/insights', icon: Lightbulb },
@@ -61,9 +82,9 @@ export function MobileNav() {
   }
 
   const mainNav = filterByShareView(mainNavItems)
-  const moreNav = filterByShareView(moreNavItems)
+  const allNav = filterByShareView(allNavItemsAlphabetical)
 
-  const isMoreActive = moreNav.some(item => pathname === item.href)
+  const isMoreActive = moreNavItems.some(item => pathname === item.href)
 
   useEffect(() => {
     if (menuOpen) {
@@ -127,7 +148,7 @@ export function MobileNav() {
               <div className="w-12 h-1 bg-border rounded-full mx-auto mb-4" />
               
               <div className="grid grid-cols-5 pb-3">
-                {moreNav.map((item, index) => {
+                {allNav.map((item, index) => {
                   const isActive = pathname === item.href
                   return (
                     <Link

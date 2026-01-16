@@ -62,22 +62,27 @@ export default function HabitsPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <CheckSquare className="h-6 w-6 text-primary" />
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+            <div className="relative p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+              <CheckSquare className="h-7 w-7 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">Habits</h1>
           </div>
-          <p className="text-muted-foreground text-lg">
-            Track your daily habits and build streaks.
-          </p>
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
+              Habits
+            </h1>
+            <p className="text-muted-foreground font-medium mt-1">
+              Track your daily habits and build streaks.
+            </p>
+          </div>
         </div>
         {!isShareView && (
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2 hidden sm:flex">
                   <CalendarIcon className="h-4 w-4" />
                   {selectedDate ? format(selectedDate, 'MMM d') : 'Log past date'}
                 </Button>
@@ -92,7 +97,16 @@ export default function HabitsPage() {
                 />
               </PopoverContent>
             </Popover>
-            <HabitForm onSubmit={createHabit} />
+            <HabitForm 
+              onSubmit={createHabit} 
+              trigger={
+                <Button className="gap-2 rounded-full px-4 shadow-sm hover:shadow-md transition-all w-full sm:w-auto">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Habit</span>
+                  <span className="inline sm:hidden">Add</span>
+                </Button>
+              }
+            />
           </div>
         )}
       </div>

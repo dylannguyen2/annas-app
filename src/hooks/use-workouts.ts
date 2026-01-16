@@ -16,7 +16,7 @@ interface Workout {
 
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error('Failed to fetch')
-  return res.json()
+  return res.json().then(json => json.data ?? [])
 })
 
 const WORKOUTS_KEY = '/api/workouts'

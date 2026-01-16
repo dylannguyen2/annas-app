@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useMedia, type Media, type SearchResult, type MediaStatus, type MediaType } from '@/hooks/use-media'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -900,43 +900,31 @@ function WatchingStats({ media }: { media: Media[] }) {
 
   if (media.length === 0) return null
 
+  const stats = [
+    { title: "This Month", value: finishedThisMonth, sub: "titles finished", icon: Calendar },
+    { title: "This Year", value: finishedThisYear, sub: "titles finished", icon: TrendingUp },
+    { title: "Watching", value: currentlyWatching, sub: "in progress", icon: PlayCircle },
+    { title: "Avg Rating", value: avgRating || '—', sub: `${ratedMedia.length} rated`, icon: Star },
+  ]
+
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory sm:grid sm:grid-cols-4 sm:overflow-visible sm:pb-0 mb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50 min-w-[140px] flex-shrink-0 snap-start sm:min-w-0 sm:flex-shrink">
-        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-          <Calendar className="h-3.5 w-3.5" />
-          <span className="text-xs font-medium">This Month</span>
-        </div>
-        <p className="text-2xl font-bold">{finishedThisMonth}</p>
-        <p className="text-xs text-muted-foreground">titles finished</p>
-      </div>
-      
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50 min-w-[140px] flex-shrink-0 snap-start sm:min-w-0 sm:flex-shrink">
-        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-          <TrendingUp className="h-3.5 w-3.5" />
-          <span className="text-xs font-medium">This Year</span>
-        </div>
-        <p className="text-2xl font-bold">{finishedThisYear}</p>
-        <p className="text-xs text-muted-foreground">titles finished</p>
-      </div>
-      
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50 min-w-[140px] flex-shrink-0 snap-start sm:min-w-0 sm:flex-shrink">
-        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-          <PlayCircle className="h-3.5 w-3.5" />
-          <span className="text-xs font-medium">Watching</span>
-        </div>
-        <p className="text-2xl font-bold">{currentlyWatching}</p>
-        <p className="text-xs text-muted-foreground">in progress</p>
-      </div>
-      
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl p-3 border border-border/50 min-w-[140px] flex-shrink-0 snap-start sm:min-w-0 sm:flex-shrink">
-        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-          <Star className="h-3.5 w-3.5" />
-          <span className="text-xs font-medium">Avg Rating</span>
-        </div>
-        <p className="text-2xl font-bold">{avgRating || '-'}</p>
-        <p className="text-xs text-muted-foreground">{ratedMedia.length} rated</p>
-      </div>
+    <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-6">
+      {stats.map((stat, i) => (
+        <Card key={i} className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+            <stat.icon className="w-32 h-32" />
+          </div>
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              {stat.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-foreground">{stat.value}</div>
+            <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">{stat.sub}</p>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   )
 }
@@ -1041,14 +1029,21 @@ export default function MediaPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Clapperboard className="h-6 w-6 text-primary" />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+              <div className="relative p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+                <Clapperboard className="h-7 w-7 text-primary" />
+              </div>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">Movies & TV</h1>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
+                Movies & TV
+              </h1>
+              <p className="text-muted-foreground font-medium mt-1">Track what you&apos;re watching</p>
+            </div>
           </div>
-          <p className="text-muted-foreground text-lg">Track what you&apos;re watching.</p>
         </div>
             
         {!isShareView && (
@@ -1097,8 +1092,13 @@ export default function MediaPage() {
             </div>
             
             <div className="flex items-center gap-1 shrink-0">
-              {mobileSearchOpen ? (
-                <div className="relative sm:hidden w-[160px] mr-1">
+              <div className="sm:hidden flex items-center">
+                <div 
+                  className={cn(
+                    "relative overflow-hidden transition-all duration-300 ease-out",
+                    mobileSearchOpen ? "w-[160px] opacity-100 mr-1" : "w-0 opacity-0"
+                  )}
+                >
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     type="text"
@@ -1106,7 +1106,7 @@ export default function MediaPage() {
                     className="h-8 w-full pl-8 pr-8 text-xs bg-background/50 focus:bg-background transition-colors"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    autoFocus
+                    autoFocus={mobileSearchOpen}
                   />
                   <button
                     onClick={() => {
@@ -1118,16 +1118,18 @@ export default function MediaPage() {
                     <X className="h-3 w-3" />
                   </button>
                 </div>
-              ) : (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 sm:hidden"
+                  className={cn(
+                    "h-8 w-8 p-0 transition-all duration-300",
+                    mobileSearchOpen && "rotate-90 opacity-0 w-0"
+                  )}
                   onClick={() => setMobileSearchOpen(true)}
                 >
                   <Search className="h-4 w-4" />
                 </Button>
-              )}
+              </div>
               
               <div className="relative hidden sm:block w-[180px] mr-1">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1179,9 +1181,9 @@ export default function MediaPage() {
                 <>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="sm" className={cn("h-8 gap-1 text-xs", (dateFrom || dateTo) && "text-primary")}>
+                      <Button variant="ghost" size="sm" className={cn("hidden sm:flex h-8 gap-1 text-xs", (dateFrom || dateTo) && "text-primary")}>
                         <Calendar className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Date</span>
+                        <span>Date</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80 p-4" align="end">
@@ -1231,7 +1233,7 @@ export default function MediaPage() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className={cn("h-8 gap-1 text-xs", ratingFilter !== 'all' && "text-primary")}>
+                      <Button variant="ghost" size="sm" className={cn("hidden sm:flex h-8 gap-1 text-xs", ratingFilter !== 'all' && "text-primary")}>
                         <SlidersHorizontal className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">Rating</span>
                       </Button>

@@ -100,12 +100,12 @@ export function CategoryForm({ onSubmit, trigger, initialData }: CategoryFormPro
           <div className="space-y-2">
             <Label>Type</Label>
             <Select value={type} onValueChange={(v) => setType(v as 'expense' | 'income')}>
-              <SelectTrigger>
+              <SelectTrigger className="cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="expense">Expense</SelectItem>
-                <SelectItem value="income">Income</SelectItem>
+              <SelectContent className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <SelectItem value="expense" className="cursor-pointer">Expense</SelectItem>
+                <SelectItem value="income" className="cursor-pointer">Income</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -118,7 +118,7 @@ export function CategoryForm({ onSubmit, trigger, initialData }: CategoryFormPro
                   key={i}
                   type="button"
                   onClick={() => setIcon(i)}
-                  className={`w-9 h-9 text-lg rounded-lg transition-all ${
+                  className={`w-9 h-9 text-lg rounded-lg transition-all cursor-pointer ${
                     icon === i ? 'bg-primary text-primary-foreground scale-110' : 'bg-secondary hover:bg-accent'
                   }`}
                 >
@@ -136,7 +136,7 @@ export function CategoryForm({ onSubmit, trigger, initialData }: CategoryFormPro
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-8 h-8 rounded-full transition-all ${
+                  className={`w-8 h-8 rounded-full transition-all cursor-pointer ${
                     color === c ? 'ring-2 ring-offset-2 ring-primary scale-110' : ''
                   }`}
                   style={{ backgroundColor: c }}
@@ -156,10 +156,10 @@ export function CategoryForm({ onSubmit, trigger, initialData }: CategoryFormPro
           </div>
 
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !name.trim()}>
+            <Button type="submit" disabled={loading || !name.trim()} className="cursor-pointer">
               {loading ? 'Saving...' : (initialData ? 'Save' : 'Create')}
             </Button>
           </div>

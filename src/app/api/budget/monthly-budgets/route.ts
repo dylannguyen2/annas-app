@@ -42,10 +42,14 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdmin()
 
   const body = await request.json()
-  const { category_id, month, amount } = body
+  const { category_id, month, amount, period = 'monthly' } = body
 
   if (!category_id || !month || amount === undefined) {
     return NextResponse.json({ error: 'Category, month, and amount are required' }, { status: 400 })
+  }
+
+  if (period && !['weekly', 'monthly'].includes(period)) {
+    return NextResponse.json({ error: 'Period must be weekly or monthly' }, { status: 400 })
   }
 
   const { data: budget, error } = await supabase
@@ -55,6 +59,7 @@ export async function POST(request: Request) {
       category_id,
       month,
       amount,
+      period,
     }, { onConflict: 'user_id,category_id,month' })
     .select('*, budget_categories(name, icon, color, type)')
     .single()

@@ -14,21 +14,25 @@ create table if not exists wishlist_items (
 
 alter table wishlist_items enable row level security;
 
+drop policy if exists "Users can view their own wishlist items" on wishlist_items;
 create policy "Users can view their own wishlist items"
   on wishlist_items for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own wishlist items" on wishlist_items;
 create policy "Users can insert their own wishlist items"
   on wishlist_items for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own wishlist items" on wishlist_items;
 create policy "Users can update their own wishlist items"
   on wishlist_items for update
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can delete their own wishlist items" on wishlist_items;
 create policy "Users can delete their own wishlist items"
   on wishlist_items for delete
   using (auth.uid() = user_id);
 
-create index wishlist_items_user_id_idx on wishlist_items(user_id);
-create index wishlist_items_purchased_idx on wishlist_items(purchased);
+create index if not exists wishlist_items_user_id_idx on wishlist_items(user_id);
+create index if not exists wishlist_items_purchased_idx on wishlist_items(purchased);

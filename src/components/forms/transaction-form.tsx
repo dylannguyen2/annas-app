@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Minus } from 'lucide-react'
+import { Plus, Minus, DollarSign } from 'lucide-react'
 import { format } from 'date-fns'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/lib/constants/budget-categories'
 
@@ -102,36 +102,54 @@ export function TransactionForm({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{initialData ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
+      <DialogContent className="sm:max-w-md border-border/50 shadow-xl">
+        <DialogHeader className="pb-4 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-60" />
+              <div className="relative p-2 bg-card border border-border/50 rounded-xl">
+                <DollarSign className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-xl font-semibold">{initialData ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
+          </div>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={type === 'expense' ? 'default' : 'outline'}
-              className={`flex-1 ${type === 'expense' ? 'bg-red-600 hover:bg-red-700' : ''}`}
-              onClick={() => handleTypeChange('expense')}
-            >
-              <Minus className="mr-1.5 h-4 w-4" />
-              Expense
-            </Button>
-            <Button
-              type="button"
-              variant={type === 'income' ? 'default' : 'outline'}
-              className={`flex-1 ${type === 'income' ? 'bg-green-600 hover:bg-green-700' : ''}`}
-              onClick={() => handleTypeChange('income')}
-            >
-              <Plus className="mr-1.5 h-4 w-4" />
-              Income
-            </Button>
+        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+          <div className="p-1.5 bg-secondary/30 rounded-xl border border-border/30">
+            <div className="flex gap-1.5">
+              <Button
+                type="button"
+                variant="ghost"
+                className={`flex-1 h-11 rounded-lg transition-all duration-200 cursor-pointer ${
+                  type === 'expense' 
+                    ? 'bg-red-500/15 text-red-600 dark:text-red-400 shadow-sm border border-red-500/20' 
+                    : 'hover:bg-secondary/50 text-muted-foreground'
+                }`}
+                onClick={() => handleTypeChange('expense')}
+              >
+                <Minus className="mr-1.5 h-4 w-4" />
+                Expense
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className={`flex-1 h-11 rounded-lg transition-all duration-200 cursor-pointer ${
+                  type === 'income' 
+                    ? 'bg-green-500/15 text-green-600 dark:text-green-400 shadow-sm border border-green-500/20' 
+                    : 'hover:bg-secondary/50 text-muted-foreground'
+                }`}
+                onClick={() => handleTypeChange('income')}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                Income
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
+            <Label htmlFor="amount" className="text-sm font-medium text-muted-foreground">Amount</Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-medium text-muted-foreground/70">$</span>
               <Input
                 id="amount"
                 type="number"
@@ -140,21 +158,21 @@ export function TransactionForm({
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="pl-7"
+                className="pl-10 h-14 text-2xl font-semibold bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all"
                 autoFocus
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label className="text-sm font-medium text-muted-foreground">Category</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
+              <SelectTrigger className="h-11 bg-secondary/30 border-border/50 cursor-pointer">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.name}>
+                  <SelectItem key={cat.id} value={cat.name} className="cursor-pointer">
                     <span className="flex items-center gap-2">
                       <span>{cat.icon}</span>
                       <span>{cat.name}</span>
@@ -166,43 +184,50 @@ export function TransactionForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
+            <Label htmlFor="date" className="text-sm font-medium text-muted-foreground">Date</Label>
             <Input
               id="date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              className="h-11 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all cursor-pointer"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="text-sm font-medium text-muted-foreground">Description</Label>
             <Input
               id="description"
               placeholder="What was this for?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              className="h-11 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optional)</Label>
+            <Label htmlFor="notes" className="text-sm font-medium text-muted-foreground">Notes (optional)</Label>
             <Input
               id="notes"
               placeholder="Additional details..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              className="h-11 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <div className="flex justify-end gap-3 pt-3 border-t border-border/40 mt-6">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border/50 cursor-pointer">
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={loading || !amount || parseFloat(amount) <= 0}
-              className={type === 'expense' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+              className={`shadow-sm hover:shadow-md transition-all cursor-pointer ${
+                type === 'expense' 
+                  ? 'bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700' 
+                  : 'bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700'
+              }`}
             >
               {loading ? 'Saving...' : (initialData ? 'Save Changes' : `Add ${type === 'expense' ? 'Expense' : 'Income'}`)}
             </Button>

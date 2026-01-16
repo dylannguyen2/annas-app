@@ -260,19 +260,7 @@ export function Sidebar() {
             isCollapsed ? "opacity-0 h-0 p-0 border-0" : "opacity-100 h-auto"
           )}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background/40 to-accent/10 backdrop-blur-md" />
-            <div className="absolute inset-0 border border-white/20 dark:border-white/5 rounded-3xl" />
-            
-            <div className="relative p-5 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-primary/10 rounded-full ring-1 ring-primary/20">
-                  <Sparkles className="h-3.5 w-3.5 text-primary fill-primary/20" />
-                </div>
-                <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Daily Vibe</span>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-                "You're doing great today! Keep up the momentum." 🌿
-              </p>
-            </div>
+            <div className="absolute inset-0 border border-white/20 dark:border-white/5 rounded-3xl" />            
           </div>
         </div>
       </div>

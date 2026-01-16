@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import useSWR, { mutate } from 'swr'
+import useSWRInfinite from 'swr/infinite'
 import { Activity } from '@/types/database'
 
 interface ManualWorkout {
@@ -37,31 +38,91 @@ export interface UnifiedWorkout {
   rawWorkout?: ManualWorkout
 }
 
+interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  hasMore: boolean
+  offset: number
+  limit: number
+}
+
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error('Failed to fetch')
   return res.json()
 })
 
-const ACTIVITIES_KEY = '/api/garmin/activities'
-const WORKOUTS_KEY = '/api/workouts'
+const PAGE_SIZE = 20
 
 export function useAllWorkouts() {
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { data: activities = [], isLoading: activitiesLoading } = useSWR<Activity[]>(
-    ACTIVITIES_KEY,
+  const getActivitiesKey = (pageIndex: number, previousPageData: PaginatedResponse<Activity> | null) => {
+    if (previousPageData && !previousPageData.hasMore) return null
+    const offset = pageIndex * PAGE_SIZE
+    return `/api/garmin/activities?offset=${offset}&limit=${PAGE_SIZE}`
+  }
+
+  const {
+    data: activitiesPages,
+    size: activitiesSize,
+    setSize: setActivitiesSize,
+    isLoading: activitiesLoading,
+    isValidating: activitiesValidating,
+    mutate: mutateActivities,
+  } = useSWRInfinite<PaginatedResponse<Activity>>(
+    getActivitiesKey,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 30000 }
+    { revalidateOnFocus: false, dedupingInterval: 30000, revalidateFirstPage: false }
   )
 
-  const { data: manualWorkouts = [], isLoading: workoutsLoading } = useSWR<ManualWorkout[]>(
-    WORKOUTS_KEY,
+  const getWorkoutsKey = (pageIndex: number, previousPageData: PaginatedResponse<ManualWorkout> | null) => {
+    if (previousPageData && !previousPageData.hasMore) return null
+    const offset = pageIndex * PAGE_SIZE
+    return `/api/workouts?offset=${offset}&limit=${PAGE_SIZE}`
+  }
+
+  const {
+    data: workoutsPages,
+    size: workoutsSize,
+    setSize: setWorkoutsSize,
+    isLoading: workoutsLoading,
+    isValidating: workoutsValidating,
+    mutate: mutateWorkouts,
+  } = useSWRInfinite<PaginatedResponse<ManualWorkout>>(
+    getWorkoutsKey,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 30000 }
+    { revalidateOnFocus: false, dedupingInterval: 30000, revalidateFirstPage: false }
   )
+
+  const activities = useMemo(() => {
+    if (!activitiesPages) return []
+    return activitiesPages.flatMap(page => page.data || [])
+  }, [activitiesPages])
+
+  const manualWorkouts = useMemo(() => {
+    if (!workoutsPages) return []
+    return workoutsPages.flatMap(page => page.data || [])
+  }, [workoutsPages])
+
+  const hasMoreActivities = activitiesPages?.[activitiesPages.length - 1]?.hasMore ?? true
+  const hasMoreWorkouts = workoutsPages?.[workoutsPages.length - 1]?.hasMore ?? true
+  const hasMore = hasMoreActivities || hasMoreWorkouts
 
   const loading = activitiesLoading || workoutsLoading
+  const loadingMore = activitiesValidating || workoutsValidating
+
+  const totalActivities = activitiesPages?.[0]?.total ?? 0
+  const totalWorkouts = workoutsPages?.[0]?.total ?? 0
+
+  const loadMore = useCallback(() => {
+    if (hasMoreActivities && !activitiesValidating) {
+      setActivitiesSize(activitiesSize + 1)
+    }
+    if (hasMoreWorkouts && !workoutsValidating) {
+      setWorkoutsSize(workoutsSize + 1)
+    }
+  }, [hasMoreActivities, hasMoreWorkouts, activitiesValidating, workoutsValidating, activitiesSize, workoutsSize, setActivitiesSize, setWorkoutsSize])
 
   const syncGarmin = async () => {
     setSyncing(true)
@@ -76,7 +137,7 @@ export function useAllWorkouts() {
         const data = await res.json()
         throw new Error(data.error || 'Sync failed')
       }
-      mutate(ACTIVITIES_KEY)
+      mutateActivities()
       return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed')
@@ -104,7 +165,7 @@ export function useAllWorkouts() {
       throw new Error(errorData.error || 'Failed to create workout')
     }
     const newWorkout = await res.json()
-    mutate(WORKOUTS_KEY, [newWorkout, ...manualWorkouts], false)
+    mutateWorkouts()
     return newWorkout
   }
 
@@ -119,14 +180,20 @@ export function useAllWorkouts() {
       throw new Error(errorData.error || 'Failed to update workout')
     }
     const updatedWorkout = await res.json()
-    mutate(WORKOUTS_KEY, manualWorkouts.map(w => w.id === id ? updatedWorkout : w), false)
+    mutateWorkouts()
     return updatedWorkout
   }
 
   const deleteWorkout = async (id: string) => {
     const res = await fetch(`/api/workouts/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error('Failed to delete workout')
-    mutate(WORKOUTS_KEY, manualWorkouts.filter(w => w.id !== id), false)
+    mutateWorkouts()
+  }
+
+  const deleteActivity = async (id: string) => {
+    const res = await fetch(`/api/garmin/activities/${id}`, { method: 'DELETE' })
+    if (!res.ok) throw new Error('Failed to delete activity')
+    mutateActivities()
   }
 
   const unifiedWorkouts = useMemo((): UnifiedWorkout[] => {
@@ -179,15 +246,21 @@ export function useAllWorkouts() {
     activities,
     manualWorkouts,
     loading,
+    loadingMore,
     syncing,
     error,
+    hasMore,
+    totalActivities,
+    totalWorkouts,
+    loadMore,
     syncGarmin,
     createWorkout,
     updateWorkout,
     deleteWorkout,
+    deleteActivity,
     refetch: () => {
-      mutate(ACTIVITIES_KEY)
-      mutate(WORKOUTS_KEY)
+      mutateActivities()
+      mutateWorkouts()
     },
   }
 }

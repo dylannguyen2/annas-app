@@ -428,11 +428,13 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
   }
   
-  .scrollbar-none {
+  .scrollbar-none,
+  .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .scrollbar-none::-webkit-scrollbar {
+  .scrollbar-none::-webkit-scrollbar,
+  .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 

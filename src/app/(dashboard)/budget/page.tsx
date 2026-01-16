@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useShareView } from '@/lib/share-view/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TransactionForm } from '@/components/forms/transaction-form'
+import { BudgetLimitForm } from '@/components/forms/budget-limit-form'
 import { 
   useBudgetSummary, 
   type Transaction,
@@ -27,11 +28,17 @@ import {
   Send,
   Pencil,
   X,
-  CalendarDays
+  CalendarDays,
+  LayoutDashboard,
+  List,
+  PieChart,
+  Search,
+  Filter
 } from 'lucide-react'
 import { PageSkeleton } from '@/components/dashboard/page-skeleton'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isFuture, startOfWeek, endOfWeek, parseISO } from 'date-fns'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const formatCurrency = (amount: number) => {
   return `$${Math.abs(amount).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -42,6 +49,12 @@ const getProgressColor = (percent: number) => {
   if (percent >= 75) return 'bg-yellow-500'
   return 'bg-green-500'
 }
+
+const TABS = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'transactions', label: 'Transactions', icon: List },
+  { id: 'budgets', label: 'Budgets', icon: PieChart },
+] as const
 
 export default function BudgetPage() {
   const { isShareView } = useShareView()
@@ -57,6 +70,10 @@ export default function BudgetPage() {
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  
+  const [activeTab, setActiveTab] = useState<string>('overview')
+  const [transactionSearch, setTransactionSearch] = useState('')
+  const [visibleTxCount, setVisibleTxCount] = useState(20)
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   
@@ -64,6 +81,10 @@ export default function BudgetPage() {
     start: startOfWeek(startOfMonth(currentMonth)),
     end: endOfWeek(endOfMonth(currentMonth)),
   })
+
+  useEffect(() => {
+    setVisibleTxCount(20)
+  }, [activeTab, transactionSearch, currentMonth])
 
   const getTransactionsForDay = (day: Date) => {
     const dateStr = format(day, 'yyyy-MM-dd')
@@ -164,6 +185,20 @@ export default function BudgetPage() {
     }
   }
 
+  const filteredTransactions = summary?.transactions?.filter(tx => {
+    if (!transactionSearch.trim()) return true
+    const search = transactionSearch.toLowerCase()
+    const catInfo = tx.categoryInfo || getCategoryByName(tx.category || '')
+    return (
+      tx.description?.toLowerCase().includes(search) ||
+      catInfo?.name.toLowerCase().includes(search) ||
+      tx.amount.toString().includes(search)
+    )
+  }) || []
+
+  const visibleTransactions = filteredTransactions.slice(0, visibleTxCount)
+  const hasMoreTransactions = filteredTransactions.length > visibleTxCount
+
   if (loading) {
     return <PageSkeleton />
   }
@@ -171,20 +206,27 @@ export default function BudgetPage() {
   const isCurrentMonth = format(currentMonth, 'yyyy-MM') === format(new Date(), 'yyyy-MM')
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full page-fade-in">
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Wallet className="h-6 w-6 text-primary" />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+              <div className="relative p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+                <Wallet className="h-7 w-7 text-primary" />
+              </div>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">Budget</h1>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
+                Budget
+              </h1>
+              <p className="text-muted-foreground font-medium mt-1">Track your income and expenses</p>
+            </div>
           </div>
-          <p className="text-muted-foreground text-lg">Track your income and expenses.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="hidden lg:flex items-center gap-1 bg-secondary rounded-lg p-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevMonth}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={handlePrevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="px-3 text-sm font-medium min-w-[120px] text-center">
@@ -193,7 +235,7 @@ export default function BudgetPage() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8" 
+              className="h-8 w-8 cursor-pointer" 
               onClick={handleNextMonth}
               disabled={isCurrentMonth}
             >
@@ -222,448 +264,512 @@ export default function BudgetPage() {
             />
           </div>
           {!isShareView && (
-            <TransactionForm
-              onSubmit={handleCreateTransaction}
-              defaultType="expense"
-              trigger={
-                <Button variant="outline" size="sm" className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-300">
-                  <span className="sm:hidden">-$</span>
-                  <Minus className="hidden sm:inline h-4 w-4 sm:mr-1.5" />
-                  <span className="hidden sm:inline">Expense</span>
-                </Button>
-              }
-            />
-          )}
-          {!isShareView && (
-            <TransactionForm
-              onSubmit={handleCreateTransaction}
-              defaultType="income"
-              trigger={
-                <Button variant="outline" size="sm" className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-300">
-                  <span className="sm:hidden">+$</span>
-                  <Plus className="hidden sm:inline h-4 w-4 sm:mr-1.5" />
-                  <span className="hidden sm:inline">Income</span>
-                </Button>
-              }
-            />
+            <>
+              <TransactionForm
+                onSubmit={handleCreateTransaction}
+                defaultType="expense"
+                trigger={
+                  <Button variant="outline" size="sm" className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-300">
+                    <span className="sm:hidden">-$</span>
+                    <Minus className="hidden sm:inline h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Expense</span>
+                  </Button>
+                }
+              />
+              <TransactionForm
+                onSubmit={handleCreateTransaction}
+                defaultType="income"
+                trigger={
+                  <Button variant="outline" size="sm" className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-300">
+                    <span className="sm:hidden">+$</span>
+                    <Plus className="hidden sm:inline h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Income</span>
+                  </Button>
+                }
+              />
+            </>
           )}
         </div>
       </div>
 
-      {!isShareView && (
-        <form onSubmit={handleAiSubmit} className="relative">
-        <div className="relative flex items-center">
-          <Sparkles className="absolute left-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={aiInput}
-            onChange={(e) => setAiInput(e.target.value)}
-            placeholder="Type naturally: &quot;spent $50 on groceries&quot; or &quot;got paid $3000 salary&quot;"
-            className="pl-10 pr-12 h-11 bg-secondary/50 border-secondary"
-            disabled={aiLoading}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            variant="ghost"
-            className="absolute right-1 h-9 w-9"
-            disabled={aiLoading || !aiInput.trim()}
-          >
-            {aiLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mt-2">
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 outline-hidden whitespace-nowrap cursor-pointer",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            >
+              <Icon className={cn("h-4 w-4", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="space-y-6">
+        {activeTab === 'overview' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {!isShareView && (
+              <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
+                <CardContent className="p-3">
+                  <form onSubmit={handleAiSubmit} className="relative">
+                    <div className="relative flex items-center">
+                      <div className="absolute left-3 p-1.5 bg-primary/10 rounded-lg">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                      </div>
+                      <Input
+                        value={aiInput}
+                        onChange={(e) => setAiInput(e.target.value)}
+                        placeholder="Type naturally: &quot;spent $50 on groceries&quot; or &quot;got paid $3000 salary&quot;"
+                        className="pl-14 pr-12 h-12 bg-background/50 border-border/50 text-base focus-visible:ring-primary/20"
+                        disabled={aiLoading}
+                      />
+                      <Button
+                        type="submit"
+                        size="icon"
+                        variant="ghost"
+                        className="absolute right-2 h-8 w-8 hover:bg-primary/10 hover:text-primary cursor-pointer"
+                        disabled={aiLoading || !aiInput.trim()}
+                      >
+                        {aiLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
             )}
-          </Button>
-        </div>
-        </form>
-      )}
 
-      {error && (
-        <Card className="border-destructive">
-          <CardContent className="py-3">
-            <p className="text-sm text-destructive">{error}</p>
-          </CardContent>
-        </Card>
-      )}
+            {error && (
+              <Card className="border-destructive">
+                <CardContent className="py-3">
+                  <p className="text-sm text-destructive">{error}</p>
+                </CardContent>
+              </Card>
+            )}
 
-      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-              Income
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(summary?.totalIncome || 0)}
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+                <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+                  <TrendingUp className="w-32 h-32" />
+                </div>
+                <CardHeader className="pb-2 relative">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Income
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                    {formatCurrency(summary?.totalIncome || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">this month</p>
+                </CardContent>
+              </Card>
+              <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+                <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+                  <TrendingDown className="w-32 h-32" />
+                </div>
+                <CardHeader className="pb-2 relative">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Expenses
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
+                    {formatCurrency(summary?.totalExpenses || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">this month</p>
+                </CardContent>
+              </Card>
+              <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+                <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+                  <PiggyBank className="w-32 h-32" />
+                </div>
+                <CardHeader className="pb-2 relative">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Net Savings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className={`text-xl sm:text-2xl lg:text-3xl font-bold whitespace-nowrap ${(summary?.netSavings || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {(summary?.netSavings || 0) < 0 ? '-' : ''}{formatCurrency(summary?.netSavings || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">income - expenses</p>
+                </CardContent>
+              </Card>
+              <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+                <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+                  <Wallet className="w-32 h-32" />
+                </div>
+                <CardHeader className="pb-2 relative">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Budget Left
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className={`text-xl sm:text-2xl lg:text-3xl font-bold whitespace-nowrap ${(summary?.budgetRemaining || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {(summary?.budgetRemaining || 0) < 0 ? '-' : ''}{formatCurrency(summary?.budgetRemaining || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80 whitespace-nowrap">
+                    of {formatCurrency(summary?.totalBudgeted || 0)} budgeted
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-            <p className="text-xs text-muted-foreground">this month</p>
-          </CardContent>
-        </Card>
-        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-red-600" />
-              Expenses
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(summary?.totalExpenses || 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">this month</p>
-          </CardContent>
-        </Card>
-        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <PiggyBank className="h-4 w-4 text-blue-600" />
-              Net Savings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${(summary?.netSavings || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {(summary?.netSavings || 0) < 0 ? '-' : ''}{formatCurrency(summary?.netSavings || 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">income - expenses</p>
-          </CardContent>
-        </Card>
-        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-purple-600" />
-              Budget Left
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${(summary?.budgetRemaining || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {(summary?.budgetRemaining || 0) < 0 ? '-' : ''}{formatCurrency(summary?.budgetRemaining || 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              of {formatCurrency(summary?.totalBudgeted || 0)} budgeted
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="hidden lg:block w-full lg:w-[350px] shrink-0">
-          <Card className="h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <CalendarDays className="h-4 w-4" />
-                {format(currentMonth, 'MMMM yyyy')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground mb-2">
-                {weekDays.map(day => <div key={day} className="py-1">{day}</div>)}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_3fr] gap-4">
+              <div className="hidden lg:block">
+                <Card className="h-full relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-border/40">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-primary" />
+                      {format(currentMonth, 'MMMM yyyy')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                      {weekDays.map(day => <div key={day} className="py-1">{day}</div>)}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {calendarDays.map((day) => {
+                        const dayTxs = getTransactionsForDay(day)
+                        const isCurrentMonth = isSameMonth(day, currentMonth)
+                        const isSelected = selectedDate && isSameDay(day, selectedDate)
+                        const isTodayDate = isToday(day)
+                        const isFutureDate = isFuture(day)
+                        const hasExpense = dayTxs.some(t => t.type === 'expense')
+                        const hasIncome = dayTxs.some(t => t.type === 'income')
+                        
+                        return (
+                          <button
+                            key={day.toISOString()}
+                            onClick={() => !isFutureDate && setSelectedDate(isSelected ? null : day)}
+                            disabled={isFutureDate}
+                            className={`
+                              relative flex flex-col items-center justify-start py-1.5 min-h-[52px] rounded-xl border transition-all duration-300 group
+                              ${isCurrentMonth ? 'bg-card' : 'bg-muted/10 text-muted-foreground/30'}
+                              ${isSelected ? 'ring-2 ring-primary border-primary shadow-md z-10 bg-primary/5' : 'border-border/40 hover:border-primary/30'}
+                              ${isTodayDate ? 'bg-accent/40 font-semibold border-accent' : ''}
+                              ${isFutureDate ? 'opacity-30 pointer-events-none' : 'cursor-pointer hover:bg-accent/20'}
+                            `}
+                          >
+                            <span className={`
+                              text-[10px] mb-0.5 w-6 h-6 flex items-center justify-center rounded-full transition-colors
+                              ${isTodayDate ? 'bg-primary text-primary-foreground shadow-sm' : ''}
+                              ${isSelected && !isTodayDate ? 'text-primary font-bold' : ''}
+                            `}>
+                              {format(day, 'd')}
+                            </span>
+                            {dayTxs.length > 0 && (
+                              <div className="flex gap-0.5 mt-auto mb-0.5">
+                                {hasExpense && <div className="w-1.5 h-1.5 rounded-full bg-red-500 group-hover:scale-110 transition-transform" />}
+                                {hasIncome && <div className="w-1.5 h-1.5 rounded-full bg-green-500 group-hover:scale-110 transition-transform" />}
+                              </div>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-border/40">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                        <span className="font-medium">Expense</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                        <span className="font-medium">Income</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="grid grid-cols-7 gap-1">
-                {calendarDays.map((day) => {
-                  const dayTxs = getTransactionsForDay(day)
-                  const isCurrentMonth = isSameMonth(day, currentMonth)
-                  const isSelected = selectedDate && isSameDay(day, selectedDate)
-                  const isTodayDate = isToday(day)
-                  const isFutureDate = isFuture(day)
-                  const hasExpense = dayTxs.some(t => t.type === 'expense')
-                  const hasIncome = dayTxs.some(t => t.type === 'income')
-                  
-                  return (
-                    <button
-                      key={day.toISOString()}
-                      onClick={() => !isFutureDate && setSelectedDate(isSelected ? null : day)}
-                      disabled={isFutureDate}
-                      className={`
-                        relative flex flex-col items-center justify-start py-1 min-h-[48px] rounded-md border transition-all
-                        ${isCurrentMonth ? 'bg-card' : 'bg-muted/30 text-muted-foreground/50'}
-                        ${isSelected ? 'ring-2 ring-primary border-primary z-10' : 'border-border/50'}
-                        ${isTodayDate ? 'bg-accent/50' : ''}
-                        ${isFutureDate ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-accent/50'}
-                      `}
-                    >
-                      <span className={`
-                        text-[11px] w-5 h-5 flex items-center justify-center rounded-full
-                        ${isTodayDate ? 'bg-primary text-primary-foreground font-bold' : ''}
-                        ${isSelected && !isTodayDate ? 'text-primary font-bold' : ''}
-                      `}>
-                        {format(day, 'd')}
-                      </span>
-                      {dayTxs.length > 0 && (
-                        <div className="flex gap-0.5 mt-0.5">
-                          {hasExpense && <div className="w-1.5 h-1.5 rounded-full bg-red-500" />}
-                          {hasIncome && <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+
+              <div className="flex flex-col">
+                {selectedDate ? (
+                  <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent h-full flex flex-col relative overflow-hidden animate-in fade-in duration-300 slide-in-from-right-4">
+                    <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-primary/5">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <CalendarDays className="h-4 w-4 text-primary" />
+                        </div>
+                        <CardTitle className="text-base font-semibold">
+                          {format(selectedDate, 'MMMM d, yyyy')}
+                        </CardTitle>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-primary/10" onClick={() => setSelectedDate(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col gap-4 pt-4">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="relative overflow-hidden p-3 bg-card/60 rounded-xl border border-green-500/20 shadow-sm backdrop-blur-sm">
+                          <div className="absolute -bottom-2 -right-2 opacity-[0.05]">
+                            <TrendingUp className="w-12 h-12" />
+                          </div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Income</p>
+                          <p className="text-lg font-bold text-green-600 dark:text-green-400">+{formatCurrency(selectedDateStats.income)}</p>
+                        </div>
+                        <div className="relative overflow-hidden p-3 bg-card/60 rounded-xl border border-red-500/20 shadow-sm backdrop-blur-sm">
+                          <div className="absolute -bottom-2 -right-2 opacity-[0.05]">
+                            <TrendingDown className="w-12 h-12" />
+                          </div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Expenses</p>
+                          <p className="text-lg font-bold text-red-600 dark:text-red-400">-{formatCurrency(selectedDateStats.expense)}</p>
+                        </div>
+                        <div className={`relative overflow-hidden p-3 rounded-xl border shadow-sm backdrop-blur-sm ${selectedDateStats.net >= 0 ? 'bg-card/60 border-green-500/20' : 'bg-card/60 border-red-500/20'}`}>
+                          <div className="absolute -bottom-2 -right-2 opacity-[0.05]">
+                            <PiggyBank className="w-12 h-12" />
+                          </div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Net</p>
+                          <p className={`text-lg font-bold ${selectedDateStats.net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {selectedDateStats.net >= 0 ? '+' : '-'}{formatCurrency(selectedDateStats.net)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {selectedDateTransactions.length > 0 ? (
+                        <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar flex-1">
+                          {selectedDateTransactions.map((tx: Transaction) => {
+                            const catInfo = tx.categoryInfo || getCategoryByName(tx.category || '')
+                            return (
+                              <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 shadow-sm group hover:border-primary/30 hover:shadow-md transition-all duration-300">
+                                <div className="flex items-center gap-3">
+                                  <div className="text-2xl p-2 bg-muted/20 rounded-xl group-hover:bg-primary/10 transition-colors">
+                                    {catInfo?.icon || '📦'}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-semibold">{tx.description || catInfo?.name || 'Transaction'}</p>
+                                    {catInfo && <p className="text-xs text-muted-foreground">{catInfo.name}</p>}
+                                  </div>
+                                </div>
+                                <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                  {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
+                          <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                            <Wallet className="h-8 w-8 opacity-20" />
+                          </div>
+                          <p className="font-medium">No transactions recorded</p>
+                          <p className="text-sm opacity-70 mb-4">Add your first transaction for this day</p>
+                          {!isShareView && (
+                            <div className="flex justify-center gap-2">
+                              <TransactionForm
+                                onSubmit={handleCreateTransaction}
+                                defaultType="expense"
+                                trigger={<Button variant="outline" size="sm" className="cursor-pointer"><Minus className="mr-1.5 h-3 w-3" />Expense</Button>}
+                              />
+                              <TransactionForm
+                                onSubmit={handleCreateTransaction}
+                                defaultType="income"
+                                trigger={<Button size="sm" className="cursor-pointer"><Plus className="mr-1.5 h-3 w-3" />Income</Button>}
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-red-500" />
-                  <span>Expense</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span>Income</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="flex-1 flex flex-col">
-          {selectedDate ? (
-            <Card className="border-primary/20 bg-primary/5 h-full flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-base font-semibold">
-                  {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-                </CardTitle>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Income</p>
-                    <p className="text-lg font-bold text-green-600">+{formatCurrency(selectedDateStats.income)}</p>
-                  </div>
-                  <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Expenses</p>
-                    <p className="text-lg font-bold text-red-600">-{formatCurrency(selectedDateStats.expense)}</p>
-                  </div>
-                  <div className={`p-3 rounded-lg border ${selectedDateStats.net >= 0 ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
-                    <p className="text-xs text-muted-foreground mb-1">Net</p>
-                    <p className={`text-lg font-bold ${selectedDateStats.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {selectedDateStats.net >= 0 ? '+' : '-'}{formatCurrency(selectedDateStats.net)}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8 border rounded-xl border-dashed border-border/50 bg-muted/5">
+                    <CalendarDays className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                    <h3 className="font-semibold text-lg text-foreground">Select a date</h3>
+                    <p className="text-muted-foreground max-w-sm">
+                      Click on a date in the calendar to view and manage transactions for that specific day.
                     </p>
                   </div>
-                </div>
-
-                {selectedDateTransactions.length > 0 ? (
-                  <div className="space-y-2">
-                    {selectedDateTransactions.map((tx: Transaction) => {
-                      const catInfo = tx.categoryInfo || getCategoryByName(tx.category || '')
-                      return (
-                        <div key={tx.id} className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{catInfo?.icon || '📦'}</span>
-                            <div>
-                              <p className="text-sm font-medium">{tx.description || catInfo?.name || 'Transaction'}</p>
-                              {catInfo && <p className="text-xs text-muted-foreground">{catInfo.name}</p>}
-                            </div>
-                          </div>
-                          <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No transactions on this day</p>
-                    {!isShareView && (
-                      <div className="flex justify-center gap-2 mt-3">
-                        <TransactionForm
-                          onSubmit={handleCreateTransaction}
-                          defaultType="expense"
-                          trigger={<Button variant="outline" size="sm"><Minus className="mr-1.5 h-3 w-3" />Expense</Button>}
-                        />
-                        <TransactionForm
-                          onSubmit={handleCreateTransaction}
-                          defaultType="income"
-                          trigger={<Button size="sm"><Plus className="mr-1.5 h-3 w-3" />Income</Button>}
-                        />
-                      </div>
-                    )}
-                  </div>
                 )}
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="h-full flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-base">Recent Transactions</CardTitle>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'transactions' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
+              <CardHeader className="border-b border-border/40 bg-muted/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <CardTitle className="text-base font-semibold">Transactions History</CardTitle>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search transactions..."
+                    value={transactionSearch}
+                    onChange={(e) => setTransactionSearch(e.target.value)}
+                    className="pl-9 h-9 bg-background/50 border-border/50 focus-visible:ring-primary/20"
+                  />
+                  {transactionSearch && (
+                    <button
+                      onClick={() => setTransactionSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent className="flex-1">
-                {summary?.transactions && summary.transactions.length > 0 ? (
-                  <div className="space-y-2">
-                    {summary.transactions.slice(0, 10).map((tx: Transaction) => {
+              <CardContent className="pt-0">
+                {visibleTransactions.length > 0 ? (
+                  <div className="divide-y divide-border/40">
+                    {visibleTransactions.map((tx: Transaction) => {
                       const catInfo = tx.categoryInfo || getCategoryByName(tx.category || '')
                       return (
-                        <div key={tx.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{catInfo?.icon || '📦'}</span>
+                        <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group">
+                          <div className="flex items-center gap-3">
+                            <div className="text-xl p-2 bg-secondary/30 rounded-xl group-hover:bg-primary/10 transition-colors">
+                              {catInfo?.icon || '📦'}
+                            </div>
                             <div>
                               <p className="text-sm font-medium">{tx.description || catInfo?.name || 'Transaction'}</p>
-                              <p className="text-xs text-muted-foreground">{format(new Date(tx.date), 'MMM d')}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(tx.date), 'EEE, MMM d')}
+                                {catInfo && ` · ${catInfo.name}`}
+                              </p>
                             </div>
                           </div>
-                          <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {!isShareView && (
+                              <>
+                                <TransactionForm
+                                  onSubmit={(data) => handleEditTransaction(tx.id, data)}
+                                  defaultType={tx.type}
+                                  initialData={{
+                                    category: tx.category || undefined,
+                                    type: tx.type,
+                                    amount: tx.amount,
+                                    description: tx.description || undefined,
+                                    date: tx.date,
+                                  }}
+                                  trigger={
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  }
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                                  onClick={() => handleDeleteTransaction(tx.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                            <span className={`text-sm font-bold min-w-[80px] text-right ${tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                            </span>
+                          </div>
                         </div>
                       )
                     })}
-                  </div>
-                ) : (
-                  <p className="text-center py-8 text-muted-foreground">No transactions this month</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Spending by Category</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {summary?.categoryBreakdown && summary.categoryBreakdown.filter(c => c.type === 'expense').length > 0 ? (
-            <div className="space-y-4">
-              {summary.categoryBreakdown
-                .filter(c => c.type === 'expense' && (c.spent > 0 || c.budgetAmount > 0))
-                .sort((a, b) => b.spent - a.spent)
-                .map((cat: CategoryBreakdown) => (
-                  <div key={cat.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{cat.icon}</span>
-                        <span className="text-sm font-medium">{cat.name}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm font-semibold">{formatCurrency(cat.spent)}</span>
-                        {cat.budgetAmount > 0 && (
-                          <span className="text-xs text-muted-foreground"> / {formatCurrency(cat.budgetAmount)}</span>
-                        )}
-                      </div>
-                    </div>
-                    {cat.budgetAmount > 0 && (
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full ${getProgressColor(cat.percentUsed)} transition-all`}
-                          style={{ width: `${Math.min(cat.percentUsed, 100)}%` }}
-                        />
+                    {hasMoreTransactions && (
+                      <div className="p-4 text-center border-t border-border/40">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setVisibleTxCount(prev => prev + 20)}
+                          className="w-full sm:w-auto"
+                        >
+                          Load More
+                        </Button>
                       </div>
                     )}
                   </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No spending recorded this month</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">All Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {summary?.transactions && summary.transactions.length > 0 ? (
-            <div className="space-y-2">
-              {summary.transactions.slice(0, 20).map((tx: Transaction) => {
-                const catInfo = tx.categoryInfo || getCategoryByName(tx.category || '')
-                return (
-                  <div 
-                    key={tx.id} 
-                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">
-                        {catInfo?.icon || (tx.type === 'income' ? '💰' : '📦')}
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {tx.description || catInfo?.name || (tx.type === 'income' ? 'Income' : 'Expense')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(tx.date), 'MMM d')}
-                          {catInfo && ` · ${catInfo.name}`}
-                        </p>
-                      </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                      {transactionSearch ? <Search className="h-8 w-8 opacity-20" /> : <Wallet className="h-8 w-8 opacity-20" />}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                      </span>
-                      {!isShareView && (
-                        <TransactionForm
-                          onSubmit={(data) => handleEditTransaction(tx.id, data)}
-                          defaultType={tx.type}
-                          initialData={{
-                            category: tx.category || undefined,
-                            type: tx.type,
-                            amount: tx.amount,
-                            description: tx.description || undefined,
-                            date: tx.date,
-                          }}
-                          trigger={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          }
-                        />
-                      )}
-                      {!isShareView && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteTransaction(tx.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
+                    <p className="font-medium">{transactionSearch ? 'No matching transactions' : 'No transactions this month'}</p>
+                    <p className="text-sm opacity-70">
+                      {transactionSearch ? 'Try a different search term' : 'Add transactions to see them here'}
+                    </p>
                   </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-5xl mb-4">💸</div>
-              <h3 className="text-lg font-semibold mb-2">No transactions yet</h3>
-              <p className="text-muted-foreground mb-4">Start tracking your spending</p>
-              {!isShareView && (
-                <div className="flex justify-center gap-2">
-                  <TransactionForm
-                    onSubmit={handleCreateTransaction}
-                    defaultType="expense"
-                    trigger={
-                      <Button variant="outline">
-                        <Minus className="mr-1.5 h-4 w-4" />
-                        Add Expense
-                      </Button>
-                    }
-                  />
-                  <TransactionForm
-                    onSubmit={handleCreateTransaction}
-                    defaultType="income"
-                    trigger={
-                      <Button>
-                        <Plus className="mr-1.5 h-4 w-4" />
-                        Add Income
-                      </Button>
-                    }
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'budgets' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
+              <CardHeader className="border-b border-border/40 bg-muted/10 flex flex-row items-center justify-between">
+                <CardTitle className="text-base font-semibold">Spending by Category</CardTitle>
+                {!isShareView && (
+                  <BudgetLimitForm month={currentMonth} />
+                )}
+              </CardHeader>
+              <CardContent className="pt-6">
+                {summary?.categoryBreakdown && summary.categoryBreakdown.filter(c => c.type === 'expense').length > 0 ? (
+                  <div className="space-y-5">
+                    {summary.categoryBreakdown
+                      .filter(c => c.type === 'expense' && (c.spent > 0 || c.budgetAmount > 0))
+                      .sort((a, b) => b.spent - a.spent)
+                      .map((cat: CategoryBreakdown) => (
+                        <div key={cat.id} className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="text-xl p-2 bg-secondary/30 rounded-xl">
+                                {cat.icon}
+                              </div>
+                              <span className="text-sm font-semibold">{cat.name}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-sm font-bold">{formatCurrency(cat.spent)}</span>
+                              {cat.budgetAmount > 0 && (
+                                <span className="text-xs text-muted-foreground ml-1">/ {formatCurrency(cat.budgetAmount)}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="relative h-2.5 bg-secondary/50 rounded-full overflow-hidden">
+                            <div 
+                              className={`absolute h-full ${getProgressColor(cat.percentUsed)} transition-all duration-500 rounded-full`}
+                              style={{ width: `${Math.min(cat.percentUsed, 100)}%` }}
+                            />
+                          </div>
+                          {cat.budgetAmount > 0 && (
+                            <div className="flex justify-between text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                              <span>{cat.percentUsed.toFixed(0)}% Used</span>
+                              <span>{formatCurrency(Math.max(0, cat.budgetAmount - cat.spent))} left</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                      <PiggyBank className="h-8 w-8 opacity-20" />
+                    </div>
+                    <p className="font-medium">No spending recorded</p>
+                    <p className="text-sm opacity-70">Add transactions to see category breakdown</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

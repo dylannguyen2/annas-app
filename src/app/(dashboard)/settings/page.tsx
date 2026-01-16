@@ -8,7 +8,12 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useHealth } from '@/hooks/use-health'
-import { Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard, Eye, EyeOff, Share2, Copy, Trash2, Settings } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { 
+  Loader2, Check, X, RefreshCw, FileJson, FileText, CreditCard, 
+  Eye, EyeOff, Share2, Copy, Trash2, Settings, User, Palette, 
+  Activity, Database 
+} from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useFeatureVisibility } from '@/hooks/use-feature-visibility'
@@ -17,6 +22,14 @@ import ShareLinksCard from '@/components/settings/share-links-card'
 import useSWR from 'swr'
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
+
+const TABS = [
+  { id: 'account', label: 'Account', icon: User },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'integrations', label: 'Integrations', icon: Activity },
+  { id: 'sharing', label: 'Sharing', icon: Share2 },
+  { id: 'data', label: 'Data', icon: Database },
+] as const
 
 export default function SettingsPage() {
   const { garminStatus, connectGarmin, disconnectGarmin, syncing, syncGarmin } = useHealth()
@@ -31,6 +44,7 @@ export default function SettingsPage() {
   const [openingPortal, setOpeningPortal] = useState(false)
   const [demoLoading, setDemoLoading] = useState(false)
   const [demoCopied, setDemoCopied] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>('account')
 
   const { hiddenFeatures, toggleFeature, isFeatureVisible } = useFeatureVisibility()
 
@@ -175,398 +189,458 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Settings className="h-6 w-6 text-primary" />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+              <div className="relative p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+                <Settings className="h-7 w-7 text-primary" />
+              </div>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">Settings</h1>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
+                Settings
+              </h1>
+              <p className="text-muted-foreground font-medium mt-1">
+                Manage your account and preferences
+              </p>
+            </div>
           </div>
-          <p className="text-muted-foreground text-lg">
-            Manage your account and preferences
-          </p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Garmin Connection</CardTitle>
-          <CardDescription>
-            Connect your Garmin account to sync health data
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {garminStatus.connected ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-green-600">
-                <Check className="h-5 w-5" />
-                <span className="font-medium">Connected to Garmin</span>
-              </div>
-              
-              {garminStatus.lastSync && (
-                <p className="text-sm text-muted-foreground">
-                  Last synced: {new Date(garminStatus.lastSync).toLocaleString()}
-                </p>
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mt-2">
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 outline-hidden whitespace-nowrap cursor-pointer",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
-              
+            >
+              <Icon className={cn("h-4 w-4", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="space-y-6">
+        {activeTab === 'account' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Profile</CardTitle>
+              <CardDescription>
+                Your personal information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Display Name</Label>
+                <Input id="name" placeholder="Your name" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Input id="timezone" placeholder="Australia/Sydney" />
+              </div>
+              <Button className="cursor-pointer">Save Changes</Button>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Subscription</CardTitle>
+              <CardDescription>
+                Manage your subscription and billing
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {subscription?.status ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Pro Plan</p>
+                      <p className="text-sm text-muted-foreground">
+                        {subscription.status === 'trialing' ? (
+                          <>Trial ends {new Date(subscription.trial_end || subscription.current_period_end).toLocaleDateString()}</>
+                        ) : subscription.cancel_at_period_end ? (
+                          <>Cancels {new Date(subscription.current_period_end).toLocaleDateString()}</>
+                        ) : (
+                          <>Renews {new Date(subscription.current_period_end).toLocaleDateString()}</>
+                        )}
+                      </p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      subscription.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                      subscription.status === 'trialing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                    }`}>
+                      {subscription.status === 'trialing' ? 'Trial' : 
+                       subscription.status === 'active' ? 'Active' : 
+                       subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                    </span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleManageBilling}
+                    disabled={openingPortal}
+                    className="cursor-pointer"
+                  >
+                    {openingPortal ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CreditCard className="mr-2 h-4 w-4" />
+                    )}
+                    Manage Billing
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">Loading subscription...</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          </div>
+        )}
+
+        {activeTab === 'appearance' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Preferences</CardTitle>
+              <CardDescription>
+                Customize your experience
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Dark Mode</p>
+                  <p className="text-sm text-muted-foreground">Use dark theme</p>
+                </div>
+                {mounted && (
+                  <Switch 
+                    checked={theme === 'dark'}
+                    onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                  />
+                )}
+              </div>
+              <Separator />
+              <div>
+                <p className="font-medium mb-2">Color Theme</p>
+                <p className="text-sm text-muted-foreground mb-4">Choose your preferred color palette</p>
+                {mounted && <ThemeSwitcher />}
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Daily Reminders</p>
+                  <p className="text-sm text-muted-foreground">Get reminded to log your mood</p>
+                </div>
+                <Switch />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Feature Visibility</CardTitle>
+              <CardDescription>
+                Choose which features to show in the sidebar
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {navGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    {group.label}
+                  </p>
+                  <div className="space-y-2">
+                    {group.items.map((item) => {
+                      const isVisible = isFeatureVisible(item.href)
+                      return (
+                        <div key={item.href} className="flex items-center justify-between py-1">
+                          <div className="flex items-center gap-3">
+                            <item.icon className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{item.name}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleFeature(item.href)}
+                            className="h-8 w-8 p-0"
+                          >
+                            {isVisible ? (
+                              <Eye className="h-4 w-4 text-primary" />
+                            ) : (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <Separator className="mt-3" />
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground">
+                Hidden features are removed from the sidebar but can still be accessed via URL.
+              </p>
+            </CardContent>
+          </Card>
+          </div>
+        )}
+
+        {activeTab === 'integrations' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Garmin Connection</CardTitle>
+              <CardDescription>
+                Connect your Garmin account to sync health data
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {garminStatus.connected ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <Check className="h-5 w-5" />
+                    <span className="font-medium">Connected to Garmin</span>
+                  </div>
+                  
+                  {garminStatus.lastSync && (
+                    <p className="text-sm text-muted-foreground">
+                      Last synced: {new Date(garminStatus.lastSync).toLocaleString()}
+                    </p>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleSync}
+                      disabled={syncing}
+                      className="cursor-pointer"
+                    >
+                      {syncing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                      )}
+                      {syncing ? 'Syncing...' : 'Sync Now'}
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleDisconnect}
+                      disabled={disconnecting}
+                      className="cursor-pointer"
+                    >
+                      {disconnecting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <X className="mr-2 h-4 w-4" />
+                      )}
+                      Disconnect
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleConnect} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="garmin-email">Garmin Email</Label>
+                    <Input
+                      id="garmin-email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="garmin-password">Garmin Password</Label>
+                    <Input
+                      id="garmin-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  {error && (
+                    <p className="text-sm text-destructive">{error}</p>
+                  )}
+                  
+                  <Button type="submit" disabled={connecting} className="cursor-pointer">
+                    {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {connecting ? 'Connecting...' : 'Connect Garmin'}
+                  </Button>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Your Garmin credentials are encrypted and stored securely.
+                    We use them only to sync your health data.
+                  </p>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+          </div>
+        )}
+
+        {activeTab === 'sharing' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <ShareLinksCard />
+
+          {demoSession !== undefined && !demoSession.unauthorized && (
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">Demo Mode</CardTitle>
+                <CardDescription>
+                  Share a temporary demo link with friends or colleagues
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {demoSession?.active ? (
+                  <div className="space-y-4">
+                    <div className={`flex items-center gap-2 ${demoSession.expired ? 'text-destructive' : 'text-primary'}`}>
+                      <Share2 className="h-5 w-5" />
+                      <span className="font-medium">
+                        {demoSession.expired ? 'Demo session expired' : 'Demo session active'}
+                      </span>
+                    </div>
+                    
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">Share this link:</p>
+                      <code className="text-sm break-all">{demoSession.url}</code>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
+                      {demoSession.expired ? 'Expired' : 'Expires'}: {demoSession.expires_at && new Date(demoSession.expires_at).toLocaleString()}
+                    </p>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={handleCopyDemoLink}
+                        disabled={demoLoading}
+                        className="cursor-pointer"
+                      >
+                        {demoCopied ? (
+                          <Check className="mr-2 h-4 w-4" />
+                        ) : (
+                          <Copy className="mr-2 h-4 w-4" />
+                        )}
+                        {demoCopied ? 'Copied!' : 'Copy Link'}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleEndDemo}
+                        disabled={demoLoading}
+                        className="cursor-pointer"
+                      >
+                        {demoLoading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        End Demo
+                      </Button>
+                    </div>
+
+                    {error && (
+                      <p className="text-sm text-destructive">{error}</p>
+                    )}
+
+                    <p className="text-xs text-muted-foreground">
+                      {demoSession.expired 
+                        ? 'This session has expired. End it to clean up demo data and start a new one.'
+                        : 'Ending the demo will delete all data created during this session.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Start a demo session to generate a shareable link. Anyone with the link can view your app for 24 hours. When you end the session, all data created during the demo will be deleted.
+                    </p>
+                    {error && (
+                      <p className="text-sm text-destructive">{error}</p>
+                    )}
+                    <Button
+                      onClick={handleStartDemo}
+                      disabled={demoLoading}
+                      className="cursor-pointer"
+                    >
+                      {demoLoading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Share2 className="mr-2 h-4 w-4" />
+                      )}
+                      Start Demo Session
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          </div>
+        )}
+
+        {activeTab === 'data' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Data</CardTitle>
+              <CardDescription>
+                Export all your data for backup or analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
-                  onClick={handleSync}
-                  disabled={syncing}
+                  onClick={() => handleExport('json')}
+                  disabled={exporting}
+                  className="cursor-pointer"
                 >
-                  {syncing ? (
+                  {exporting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <FileJson className="mr-2 h-4 w-4" />
                   )}
-                  {syncing ? 'Syncing...' : 'Sync Now'}
+                  Export JSON
                 </Button>
                 <Button 
-                  variant="destructive" 
-                  onClick={handleDisconnect}
-                  disabled={disconnecting}
+                  variant="outline" 
+                  onClick={() => handleExport('csv')}
+                  disabled={exporting}
+                  className="cursor-pointer"
                 >
-                  {disconnecting ? (
+                  {exporting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <X className="mr-2 h-4 w-4" />
+                    <FileText className="mr-2 h-4 w-4" />
                   )}
-                  Disconnect
+                  Export CSV
                 </Button>
               </div>
-            </div>
-          ) : (
-            <form onSubmit={handleConnect} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="garmin-email">Garmin Email</Label>
-                <Input
-                  id="garmin-email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="garmin-password">Garmin Password</Label>
-                <Input
-                  id="garmin-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
-              
-              <Button type="submit" disabled={connecting}>
-                {connecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {connecting ? 'Connecting...' : 'Connect Garmin'}
-              </Button>
-              
               <p className="text-xs text-muted-foreground">
-                Your Garmin credentials are encrypted and stored securely.
-                We use them only to sync your health data.
+                Exports include habits, mood logs, workouts, and health data.
               </p>
-            </form>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Subscription</CardTitle>
-          <CardDescription>
-            Manage your subscription and billing
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {subscription?.status ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Pro Plan</p>
-                  <p className="text-sm text-muted-foreground">
-                    {subscription.status === 'trialing' ? (
-                      <>Trial ends {new Date(subscription.trial_end || subscription.current_period_end).toLocaleDateString()}</>
-                    ) : subscription.cancel_at_period_end ? (
-                      <>Cancels {new Date(subscription.current_period_end).toLocaleDateString()}</>
-                    ) : (
-                      <>Renews {new Date(subscription.current_period_end).toLocaleDateString()}</>
-                    )}
-                  </p>
-                </div>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  subscription.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                  subscription.status === 'trialing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                }`}>
-                  {subscription.status === 'trialing' ? 'Trial' : 
-                   subscription.status === 'active' ? 'Active' : 
-                   subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
-                </span>
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={handleManageBilling}
-                disabled={openingPortal}
-              >
-                {openingPortal ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CreditCard className="mr-2 h-4 w-4" />
-                )}
-                Manage Billing
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">Loading subscription...</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {demoSession !== undefined && !demoSession.unauthorized && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Demo Mode</CardTitle>
-            <CardDescription>
-              Share a temporary demo link with friends or colleagues
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {demoSession?.active ? (
-              <div className="space-y-4">
-                <div className={`flex items-center gap-2 ${demoSession.expired ? 'text-destructive' : 'text-primary'}`}>
-                  <Share2 className="h-5 w-5" />
-                  <span className="font-medium">
-                    {demoSession.expired ? 'Demo session expired' : 'Demo session active'}
-                  </span>
-                </div>
-                
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Share this link:</p>
-                  <code className="text-sm break-all">{demoSession.url}</code>
-                </div>
-
-                <p className="text-sm text-muted-foreground">
-                  {demoSession.expired ? 'Expired' : 'Expires'}: {demoSession.expires_at && new Date(demoSession.expires_at).toLocaleString()}
-                </p>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleCopyDemoLink}
-                    disabled={demoLoading}
-                  >
-                    {demoCopied ? (
-                      <Check className="mr-2 h-4 w-4" />
-                    ) : (
-                      <Copy className="mr-2 h-4 w-4" />
-                    )}
-                    {demoCopied ? 'Copied!' : 'Copy Link'}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleEndDemo}
-                    disabled={demoLoading}
-                  >
-                    {demoLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="mr-2 h-4 w-4" />
-                    )}
-                    End Demo
-                  </Button>
-                </div>
-
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
-
-                <p className="text-xs text-muted-foreground">
-                  {demoSession.expired 
-                    ? 'This session has expired. End it to clean up demo data and start a new one.'
-                    : 'Ending the demo will delete all data created during this session.'}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Start a demo session to generate a shareable link. Anyone with the link can view your app for 24 hours. When you end the session, all data created during the demo will be deleted.
-                </p>
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
-                <Button
-                  onClick={handleStartDemo}
-                  disabled={demoLoading}
-                >
-                  {demoLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Share2 className="mr-2 h-4 w-4" />
-                  )}
-                  Start Demo Session
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      <ShareLinksCard />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>
-            Your personal information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Display Name</Label>
-            <Input id="name" placeholder="Your name" />
+            </CardContent>
+          </Card>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="timezone">Timezone</Label>
-            <Input id="timezone" placeholder="Australia/Sydney" />
-          </div>
-          <Button>Save Changes</Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Preferences</CardTitle>
-          <CardDescription>
-            Customize your experience
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Dark Mode</p>
-              <p className="text-sm text-muted-foreground">Use dark theme</p>
-            </div>
-            {mounted && (
-              <Switch 
-                checked={theme === 'dark'}
-                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-              />
-            )}
-          </div>
-          <Separator />
-          <div>
-            <p className="font-medium mb-2">Color Theme</p>
-            <p className="text-sm text-muted-foreground mb-4">Choose your preferred color palette</p>
-            {mounted && <ThemeSwitcher />}
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Daily Reminders</p>
-              <p className="text-sm text-muted-foreground">Get reminded to log your mood</p>
-            </div>
-            <Switch />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Feature Visibility</CardTitle>
-          <CardDescription>
-            Choose which features to show in the sidebar
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {navGroups.map((group) => (
-            <div key={group.label}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                {group.label}
-              </p>
-              <div className="space-y-2">
-                {group.items.map((item) => {
-                  const isVisible = isFeatureVisible(item.href)
-                  return (
-                    <div key={item.href} className="flex items-center justify-between py-1">
-                      <div className="flex items-center gap-3">
-                        <item.icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{item.name}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleFeature(item.href)}
-                        className="h-8 w-8 p-0"
-                      >
-                        {isVisible ? (
-                          <Eye className="h-4 w-4 text-primary" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                  )
-                })}
-              </div>
-              <Separator className="mt-3" />
-            </div>
-          ))}
-          <p className="text-xs text-muted-foreground">
-            Hidden features are removed from the sidebar but can still be accessed via URL.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Data</CardTitle>
-          <CardDescription>
-            Export all your data for backup or analysis
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => handleExport('json')}
-              disabled={exporting}
-            >
-              {exporting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FileJson className="mr-2 h-4 w-4" />
-              )}
-              Export JSON
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => handleExport('csv')}
-              disabled={exporting}
-            >
-              {exporting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="mr-2 h-4 w-4" />
-              )}
-              Export CSV
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Exports include habits, mood logs, workouts, and health data.
-          </p>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   )
 }

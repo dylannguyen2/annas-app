@@ -99,13 +99,13 @@ export async function GET(request: Request) {
   const supabase = getSupabaseAdmin()
 
   const { searchParams } = new URL(request.url)
-  const limit = parseInt(searchParams.get('limit') || '50')
+  const limit = parseInt(searchParams.get('limit') || '20')
   const offset = parseInt(searchParams.get('offset') || '0')
   const activityType = searchParams.get('type')
 
   let query = supabase
     .from('activities')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('user_id', effectiveUser.userId)
     .order('start_time', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -114,11 +114,17 @@ export async function GET(request: Request) {
     query = query.eq('activity_type', activityType)
   }
 
-  const { data, error } = await query
+  const { data, error, count } = await query
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  return NextResponse.json({
+    data: data,
+    total: count,
+    hasMore: (offset + limit) < (count || 0),
+    offset,
+    limit,
+  })
 }

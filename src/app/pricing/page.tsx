@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Heart, Check, Loader2, Sparkles, ShieldCheck } from 'lucide-react'
+import { Check, Loader2, Sparkles, ShieldCheck, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
@@ -83,19 +83,21 @@ export default function PricingPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground selection:bg-primary/20">
       <div className="absolute inset-0 z-0">
-        <div className="absolute -top-[20%] -left-[10%] h-[70vh] w-[70vw] rounded-full bg-primary/20 blur-[120px] opacity-40 animate-in fade-in duration-1000" />
-        <div className="absolute top-[20%] -right-[10%] h-[60vh] w-[60vw] rounded-full bg-accent/20 blur-[120px] opacity-40 animate-in fade-in duration-1000 delay-300" />
-        <div className="absolute bottom-0 left-1/3 h-[50vh] w-[50vw] rounded-full bg-blue-500/10 blur-[100px] opacity-30" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-soft-light" />
+        <div className="absolute -top-[20%] -left-[10%] h-[70vh] w-[70vw] rounded-full bg-primary/15 blur-[120px] animate-in fade-in duration-1000" />
+        <div className="absolute top-[20%] -right-[10%] h-[60vh] w-[60vw] rounded-full bg-accent/15 blur-[120px] animate-in fade-in duration-1000 delay-300" />
+        <div className="absolute bottom-0 left-1/3 h-[50vh] w-[50vw] rounded-full bg-primary/10 blur-[100px]" />
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="container mx-auto px-6 py-6 flex items-center justify-between">
           <Link href="/" className="group flex items-center gap-2 transition-opacity hover:opacity-80">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 shadow-inner ring-1 ring-white/20 backdrop-blur-md transition-transform group-hover:scale-105">
-              <Heart className="h-5 w-5 text-primary fill-primary/20" />
+            <div className="relative flex-shrink-0 transition-transform group-hover:scale-105">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50" />
+              <div className="relative bg-gradient-to-br from-background/80 to-background/40 p-0.5 rounded-2xl ring-1 ring-border/40 shadow-lg">
+                <img src="/anna.png" alt="Anna's World" className="w-10 h-10 rounded-xl object-cover" width={40} height={40} />
+              </div>
             </div>
-            <span className="font-bold text-xl tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+            <span className="font-bold text-xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/90 to-accent">
               Anna&apos;s World
             </span>
           </Link>
@@ -103,13 +105,13 @@ export default function PricingPage() {
           <div className="flex items-center gap-4">
             {isLoggedIn ? (
               <Link href="/dashboard">
-                <Button variant="ghost" className="rounded-full hover:bg-white/10">
+                <Button variant="ghost" className="rounded-full hover:bg-primary/10">
                   Dashboard
                 </Button>
               </Link>
             ) : (
               <Link href="/login">
-                <Button variant="ghost" className="rounded-full hover:bg-white/10">
+                <Button variant="ghost" className="rounded-full hover:bg-primary/10">
                   Sign In
                 </Button>
               </Link>
@@ -119,7 +121,7 @@ export default function PricingPage() {
 
         <main className="flex-1 flex flex-col items-center justify-center p-4 pb-16">
           <div className="text-center mb-10 space-y-4 max-w-2xl animate-in slide-in-from-bottom-8 fade-in duration-700">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/40 border border-white/50 shadow-sm backdrop-blur-md mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-card/60 border border-border/50 shadow-sm backdrop-blur-md mb-4">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
                 Premium Wellness
@@ -134,10 +136,10 @@ export default function PricingPage() {
           </div>
 
           <div className="relative w-full max-w-lg animate-in slide-in-from-bottom-12 fade-in duration-1000 delay-200">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 rounded-[2.5rem] blur-xl opacity-70 group-hover:opacity-100 transition duration-1000" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 rounded-[2.5rem] blur-xl opacity-70 transition duration-1000" />
             
-            <Card className="relative w-full border-white/20 shadow-2xl bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-50" />
+            <Card className="relative w-full border-border/30 shadow-2xl bg-card/80 backdrop-blur-xl rounded-[2rem] overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
               
               <CardHeader className="flex flex-col items-center text-center pb-8 pt-8 space-y-4">
                 <div className="relative">
@@ -179,7 +181,7 @@ export default function PricingPage() {
                   ))}
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-white/10">
+                <div className="space-y-4 pt-4 border-t border-border/30">
                   {error && (
                     <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center gap-2 justify-center">
                       <div className="h-1.5 w-1.5 rounded-full bg-destructive" />

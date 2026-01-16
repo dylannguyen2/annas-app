@@ -92,11 +92,11 @@ export function MoodPicker({
             className={cn(
               'flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 flex-1 aspect-square',
               mood === option.value
-                ? 'bg-primary text-primary-foreground shadow-md scale-105'
-                : 'bg-secondary/50 hover:bg-primary/10 hover:scale-105'
+                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105 ring-2 ring-primary ring-offset-2 ring-offset-background'
+                : 'bg-secondary/30 border border-border/50 hover:bg-primary/5 hover:border-primary/30 hover:scale-105'
             )}
           >
-            <span className="text-2xl filter drop-shadow-sm">{option.emoji}</span>
+            <span className="text-2xl drop-shadow-sm">{option.emoji}</span>
           </button>
         ))}
       </div>
@@ -104,19 +104,25 @@ export function MoodPicker({
   }
 
   return (
-    <Card className="border-none shadow-lg bg-card/80 backdrop-blur-sm overflow-hidden">
-      <CardHeader className="pb-2 space-y-4">
+    <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
+      <div className="absolute -bottom-10 -right-10 opacity-[0.03] pointer-events-none select-none">
+        <Sparkles className="w-40 h-40" />
+      </div>
+      
+      <CardHeader className="pb-3 border-b border-border/40 space-y-0">
         <div className="flex w-full items-center justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-xl font-light tracking-tight flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <div className="p-1.5 bg-primary/10 rounded-lg">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
               How are you feeling?
             </CardTitle>
           </div>
           {showDatePicker && (
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 h-8 rounded-full px-3 border-dashed border-primary/20 hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                <Button variant="outline" size="sm" className="gap-2 h-8 rounded-full px-3 bg-background/50 border-border/50 hover:bg-primary/5 hover:border-primary/30 transition-all">
                   <CalendarIcon className="h-3.5 w-3.5 text-primary" />
                   <span className="text-xs font-medium">{isToday ? 'Today' : format(selectedDate, 'MMM d')}</span>
                 </Button>
@@ -134,8 +140,8 @@ export function MoodPicker({
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-8">
-        <div className="grid grid-cols-6 gap-2 sm:gap-4">
+      <CardContent className="space-y-6 pt-6">
+        <div className="grid grid-cols-6 gap-2 sm:gap-3">
           {MOOD_OPTIONS.map((option) => {
              const isSelected = mood === option.value;
              return (
@@ -143,38 +149,34 @@ export function MoodPicker({
                 key={option.value}
                 onClick={() => setMood(option.value)}
                 className={cn(
-                  'group relative flex flex-col items-center justify-center py-4 rounded-2xl transition-all duration-300',
+                  'group relative flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-300',
                   isSelected
-                    ? 'bg-primary text-primary-foreground shadow-lg scale-110 z-10'
-                    : 'bg-secondary/30 hover:bg-primary/10 hover:scale-105'
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105 z-10 ring-2 ring-primary ring-offset-2 ring-offset-background'
+                    : 'bg-secondary/30 border border-border/50 hover:bg-primary/5 hover:border-primary/30 hover:-translate-y-0.5'
                 )}
               >
                 <span className={cn(
-                  "text-4xl mb-2 transition-transform duration-300 filter",
-                  isSelected ? "scale-110 drop-shadow-md" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110"
+                  "text-3xl mb-1 transition-transform duration-300",
+                  isSelected ? "scale-110 drop-shadow-md" : "group-hover:scale-110"
                 )}>
                   {option.emoji}
                 </span>
                 <span className={cn(
-                  "text-[10px] font-medium tracking-wide uppercase transition-colors",
+                  "text-[10px] font-semibold tracking-wide uppercase transition-colors",
                   isSelected ? "text-primary-foreground/90" : "text-muted-foreground group-hover:text-primary"
                 )}>
                   {option.label}
                 </span>
-                
-                {isSelected && (
-                  <span className="absolute inset-0 rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-background" />
-                )}
               </button>
             )
           })}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 pt-4">
-          <div className="space-y-4 p-4 rounded-2xl bg-secondary/20">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-4 p-4 rounded-xl bg-card border border-border/50 shadow-sm">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Energy</Label>
-              <span className="text-sm font-bold bg-background/50 px-2 py-0.5 rounded-md min-w-[30px] text-center">{energy}/5</span>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Energy</Label>
+              <span className="text-sm font-bold bg-secondary px-2 py-0.5 rounded-md min-w-[30px] text-center">{energy}/5</span>
             </div>
             <Slider
               value={[energy]}
@@ -190,10 +192,10 @@ export function MoodPicker({
             </div>
           </div>
 
-          <div className="space-y-4 p-4 rounded-2xl bg-secondary/20">
+          <div className="space-y-4 p-4 rounded-xl bg-card border border-border/50 shadow-sm">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Stress</Label>
-              <span className="text-sm font-bold bg-background/50 px-2 py-0.5 rounded-md min-w-[30px] text-center">{stress}/5</span>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Stress</Label>
+              <span className="text-sm font-bold bg-secondary px-2 py-0.5 rounded-md min-w-[30px] text-center">{stress}/5</span>
             </div>
             <Slider
               value={[stress]}
@@ -210,14 +212,14 @@ export function MoodPicker({
           </div>
         </div>
 
-        <div className="space-y-3 pt-2">
-          <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider ml-1">Notes</Label>
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Notes</Label>
           <Textarea
             placeholder="What's on your mind?..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="resize-none border-dashed border-2 focus:border-solid bg-transparent rounded-xl focus:ring-0 transition-all placeholder:text-muted-foreground/40"
+            className="resize-none bg-secondary/30 border-border/50 focus:border-primary/50 rounded-xl focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/40"
           />
         </div>
 
@@ -225,8 +227,8 @@ export function MoodPicker({
           onClick={handleSave} 
           disabled={mood === undefined || loading}
           className={cn(
-            "w-full h-12 text-lg font-medium rounded-xl transition-all duration-300",
-            saved ? "bg-green-500 hover:bg-green-600" : ""
+            "w-full h-12 text-lg font-medium rounded-xl transition-all duration-300 shadow-lg shadow-primary/20",
+            saved ? "bg-green-500 hover:bg-green-600 shadow-green-500/20" : ""
           )}
           size="lg"
         >

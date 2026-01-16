@@ -16,6 +16,13 @@ import {
 
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import { 
   Gift, 
   ShoppingBag, 
@@ -28,6 +35,12 @@ import {
   Link as LinkIcon,
   ArrowLeft,
   X,
+  Search,
+  Image as ImageIcon,
+  DollarSign,
+  FileText,
+  Tag,
+  ArrowUpDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -39,6 +52,7 @@ const TABS = [
 ] as const
 
 type TabType = typeof TABS[number]['id']
+type SortOption = 'newest' | 'oldest' | 'price_high' | 'price_low' | 'title'
 
 function AddItemDialog({
   open,
@@ -341,80 +355,132 @@ function EditItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogTitle className="text-lg font-semibold">Edit Item</DialogTitle>
-        <form onSubmit={handleSave} className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label htmlFor="edit-title">Title <span className="text-red-500">*</span></Label>
-            <Input
-              id="edit-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-url">URL <span className="text-red-500">*</span></Label>
-            <Input
-              id="edit-url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-image">Image URL</Label>
-            <Input
-              id="edit-image"
-              placeholder="https://example.com/image.jpg"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="edit-price">Price</Label>
-              <Input
-                id="edit-price"
-                placeholder="99.99"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-currency">Currency</Label>
-              <Input
-                id="edit-currency"
-                placeholder="USD"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-              />
+      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+        <div className="relative">
+          <div className="relative h-32 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/20 flex items-center justify-center">
+            {imageUrl ? (
+              <img src={imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+            ) : null}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="p-3 bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl shadow-lg">
+                <Pencil className="h-6 w-6 text-primary" />
+              </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-notes">Notes</Label>
-            <Textarea
-              id="edit-notes"
-              placeholder="Any notes about this item..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-            />
+          
+          <div className="px-6 pb-6">
+            <DialogTitle className="text-xl font-semibold -mt-4 relative z-10 bg-background inline-block px-2 rounded">
+              Edit Item
+            </DialogTitle>
+            
+            <form onSubmit={handleSave} className="space-y-5 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Tag className="h-3.5 w-3.5" />
+                  Title <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  id="edit-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  autoFocus
+                  className="h-11 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <LinkIcon className="h-3.5 w-3.5" />
+                  URL <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  id="edit-url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="h-11 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-image" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Image URL
+                </Label>
+                <Input
+                  id="edit-image"
+                  placeholder="https://example.com/image.jpg"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="h-11 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-price" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <DollarSign className="h-3.5 w-3.5" />
+                    Price
+                  </Label>
+                  <Input
+                    id="edit-price"
+                    placeholder="99.99"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="h-11 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-currency" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Currency
+                  </Label>
+                  <Input
+                    id="edit-currency"
+                    placeholder="USD"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="h-11 bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <FileText className="h-3.5 w-3.5" />
+                  Notes
+                </Label>
+                <Textarea
+                  id="edit-notes"
+                  placeholder="Any notes about this item..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:ring-primary/20 resize-none"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4 border-t border-border/50">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSaving}
+                  className="flex-1 h-11 border-border/50"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSaving || !title.trim() || !url.trim()}
+                  className="flex-1 h-11 shadow-lg shadow-primary/20"
+                >
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </div>
+            </form>
           </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving || !title.trim() || !url.trim()}>
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save
-            </Button>
-          </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )
@@ -820,11 +886,11 @@ function WishlistItemCard({
   }
 
   return (
-    <Card 
+    <div 
       data-wishlist-card
       className={cn(
-        "group relative overflow-hidden border-0 bg-transparent hover:bg-secondary/20 transition-all duration-300 cursor-pointer",
-        isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+        "group relative transition-all duration-300 cursor-pointer p-2 rounded-xl hover:bg-secondary/30",
+        isSelected && "ring-2 ring-primary bg-secondary/30"
       )}
       onClick={onClick}
     >
@@ -910,7 +976,7 @@ function WishlistItemCard({
         )}
       </div>
 
-      <div className="mt-2 space-y-0.5 px-0.5">
+      <div className="mt-2 space-y-0.5">
         <h3 className="text-sm font-medium leading-tight text-foreground/90 line-clamp-1" title={item.title}>
           {item.title}
         </h3>
@@ -918,7 +984,7 @@ function WishlistItemCard({
           {item.site_name || new URL(item.url).hostname.replace('www.', '')}
         </p>
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -941,6 +1007,10 @@ export default function WishlistPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<WishlistItem | null>(null)
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [visibleCount, setVisibleCount] = useState(24)
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 
   const handleEditItem = (item: WishlistItem) => {
     setEditItem(item)
@@ -981,19 +1051,87 @@ export default function WishlistPage() {
     }
   }
 
-  const activeItems = activeTab === 'unpurchased' ? unpurchasedItems : purchasedItems
+  const filteredItems = (activeTab === 'unpurchased' ? unpurchasedItems : purchasedItems)
+    .filter(item => {
+      if (!searchQuery.trim()) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        item.title.toLowerCase().includes(query) ||
+        item.site_name?.toLowerCase().includes(query) ||
+        item.notes?.toLowerCase().includes(query)
+      )
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        case 'price_high':
+          const priceA = parseFloat(a.price || '0') || 0
+          const priceB = parseFloat(b.price || '0') || 0
+          return priceB - priceA
+        case 'price_low':
+          const priceA2 = parseFloat(a.price || '0') || 0
+          const priceB2 = parseFloat(b.price || '0') || 0
+          return priceA2 - priceB2
+        case 'title':
+          return a.title.localeCompare(b.title)
+        default:
+          return 0
+      }
+    })
+  
+  const activeItems = filteredItems.slice(0, visibleCount)
+  const hasMore = filteredItems.length > visibleCount
+  
+  const loadMore = () => {
+    setVisibleCount(prev => prev + 24)
+  }
+  
+  useEffect(() => {
+    setVisibleCount(24)
+  }, [activeTab, searchQuery])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedItem) {
+        setSelectedItem(null)
+        setMobileSheetOpen(false)
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedItem])
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+    <div 
+      className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500"
+      onClick={(e) => {
+        const target = e.target as HTMLElement
+        if (selectedItem && !target.closest('[data-wishlist-card]') && !target.closest('[data-detail-panel]') && !target.closest('[data-mobile-sheet]')) {
+          setSelectedItem(null)
+          setMobileSheetOpen(false)
+        }
+      }}
+    >
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Gift className="h-6 w-6 text-primary" />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+              <div className="relative p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+                <Gift className="h-7 w-7 text-primary" />
+              </div>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">Wishlist</h1>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
+                Wishlist
+              </h1>
+              <p className="text-muted-foreground font-medium mt-1">Keep track of things you want</p>
+            </div>
           </div>
-          <p className="text-muted-foreground text-lg">Keep track of things you want.</p>
         </div>
 
         {!isShareView && (
@@ -1008,50 +1146,129 @@ export default function WishlistPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-              {TABS.map((tab) => {
-                const Icon = tab.icon
-                const count = tab.id === 'unpurchased' ? unpurchasedItems.length : purchasedItems.length
-                const isActive = activeTab === tab.id
-                
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 outline-hidden whitespace-nowrap cursor-pointer",
-                      isActive 
-                        ? "bg-primary text-primary-foreground shadow-sm" 
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    )}
-                  >
-                    <Icon className={cn("h-4 w-4", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
-                    {tab.label}
-                    <span className={cn(
-                      "ml-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px]",
-                      isActive 
-                        ? "bg-primary-foreground/20 text-primary-foreground" 
-                        : "bg-secondary-foreground/10 text-muted-foreground"
-                    )}>
-                      {count}
-                    </span>
-                  </button>
-                )
-              })}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {TABS.map((tab) => {
+            const Icon = tab.icon
+            const count = tab.id === 'unpurchased' ? unpurchasedItems.length : purchasedItems.length
+            const isActive = activeTab === tab.id
+            
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 outline-hidden whitespace-nowrap cursor-pointer",
+                  isActive 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
+              >
+                <Icon className={cn("h-4 w-4", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+                {tab.label}
+                <span className={cn(
+                  "ml-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px]",
+                  isActive 
+                    ? "bg-primary-foreground/20 text-primary-foreground" 
+                    : "bg-secondary-foreground/10 text-muted-foreground"
+                )}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        
+        <div className="flex items-center gap-1 shrink-0">
+          <div className="sm:hidden flex items-center">
+            <div 
+              className={cn(
+                "relative overflow-hidden transition-all duration-300 ease-out",
+                mobileSearchOpen ? "w-[160px] opacity-100 mr-1" : "w-0 opacity-0"
+              )}
+            >
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search..."
+                className="h-8 w-full pl-8 pr-8 text-xs bg-background/50 focus:bg-background transition-colors"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus={mobileSearchOpen}
+              />
+              <button
+                onClick={() => {
+                  setMobileSearchOpen(false)
+                  setSearchQuery('')
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 w-8 p-0 transition-all duration-300",
+                mobileSearchOpen && "rotate-90 opacity-0 w-0"
+              )}
+              onClick={() => setMobileSearchOpen(true)}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="relative hidden sm:block w-[180px] mr-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search items..."
+              className="h-8 w-full pl-8 pr-8 text-xs bg-background/50 focus:bg-background transition-colors"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
 
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="hidden sm:flex h-8 gap-1 text-xs">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <span>Sort</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => setSortBy('newest')} className={cn("cursor-pointer", sortBy === 'newest' && "bg-secondary")}>
+                Newest First
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('oldest')} className={cn("cursor-pointer", sortBy === 'oldest' && "bg-secondary")}>
+                Oldest First
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('title')} className={cn("cursor-pointer", sortBy === 'title' && "bg-secondary")}>
+                Title A-Z
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSortBy('price_high')} className={cn("cursor-pointer", sortBy === 'price_high' && "bg-secondary")}>
+                Highest Price
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('price_low')} className={cn("cursor-pointer", sortBy === 'price_low' && "bg-secondary")}>
+                Lowest Price
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
       <div className="flex">
-        <div 
-          className="flex-1"
-          onClick={(e) => {
-            const target = e.target as HTMLElement
-            if (!target.closest('[data-wishlist-card]') && !target.closest('[data-detail-panel]')) {
-              setSelectedItem(null)
-            }
-          }}
-        >
+        <div className="flex-1">
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {[...Array(8)].map((_, i) => (
@@ -1063,45 +1280,85 @@ export default function WishlistPage() {
               ))}
             </div>
           ) : activeItems.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-3 gap-y-6">
-              {activeItems.map((item) => (
-                <WishlistItemCard
-                  key={item.id}
-                  item={item}
-                  togglePurchased={togglePurchased}
-                  deleteItem={deleteItem}
-                  onEdit={() => handleEditItem(item)}
-                  onClick={() => handleItemClick(item)}
-                  isSelected={selectedItem?.id === item.id}
-                  isReadOnly={isShareView}
-                />
-              ))}
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-1 gap-y-2">
+                {activeItems.map((item) => (
+                  <WishlistItemCard
+                    key={item.id}
+                    item={item}
+                    togglePurchased={togglePurchased}
+                    deleteItem={deleteItem}
+                    onEdit={() => handleEditItem(item)}
+                    onClick={() => handleItemClick(item)}
+                    isSelected={selectedItem?.id === item.id}
+                    isReadOnly={isShareView}
+                  />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="flex justify-center pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={loadMore}
+                    className="rounded-full px-6"
+                  >
+                    Load More ({filteredItems.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="mb-6 rounded-full bg-secondary/50 p-6 ring-1 ring-border/50">
-                <Gift className="h-12 w-12 text-muted-foreground/40" />
+                {searchQuery ? (
+                  <Search className="h-12 w-12 text-muted-foreground/40" />
+                ) : (
+                  <Gift className="h-12 w-12 text-muted-foreground/40" />
+                )}
               </div>
               <h3 className="mb-2 text-xl font-semibold text-foreground">
-                {activeTab === 'unpurchased' && "Your wishlist is empty"}
-                {activeTab === 'purchased' && "No purchased items yet"}
+                {searchQuery ? "No items found" : (
+                  <>
+                    {activeTab === 'unpurchased' && "Your wishlist is empty"}
+                    {activeTab === 'purchased' && "No purchased items yet"}
+                  </>
+                )}
               </h3>
               <p className="mb-6 max-w-md text-muted-foreground">
-                {activeTab === 'unpurchased' && "Found something you like? Add it to your wishlist."}
-                {activeTab === 'purchased' && "Items you mark as purchased will appear here."}
+                {searchQuery ? (
+                  `No items matching "${searchQuery}"`
+                ) : (
+                  <>
+                    {activeTab === 'unpurchased' && "Found something you like? Add it to your wishlist."}
+                    {activeTab === 'purchased' && "Items you mark as purchased will appear here."}
+                  </>
+                )}
               </p>
-              {!isShareView && activeTab === 'unpurchased' && (
-                <Button onClick={() => setCommandOpen(true)} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add First Item
+              {searchQuery ? (
+                <Button variant="outline" onClick={() => setSearchQuery('')} className="gap-2">
+                  <X className="h-4 w-4" />
+                  Clear Search
                 </Button>
+              ) : (
+                !isShareView && activeTab === 'unpurchased' && (
+                  <Button onClick={() => setCommandOpen(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add First Item
+                  </Button>
+                )
               )}
             </div>
           )}
         </div>
 
-        {selectedItem && (
-          <div data-detail-panel className="hidden lg:block fixed right-0 top-0 h-screen w-[360px] border-l border-border/50 bg-background/95 backdrop-blur-sm z-20 shadow-xl">
+        <div 
+          data-detail-panel 
+          className={cn(
+            "hidden lg:block fixed right-0 top-0 h-screen w-[360px] border-l border-border/50 bg-background/95 backdrop-blur-sm z-20 shadow-xl transition-transform duration-300 ease-out",
+            selectedItem ? "translate-x-0" : "translate-x-full"
+          )}
+        >
+          {selectedItem && (
             <DetailPanel
               item={selectedItem}
               onClose={handleClosePanel}
@@ -1114,8 +1371,8 @@ export default function WishlistPage() {
               }}
               isReadOnly={isShareView}
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <MobileDetailSheet

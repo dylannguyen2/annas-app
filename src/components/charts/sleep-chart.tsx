@@ -80,6 +80,8 @@ export function SleepChart({ data }: SleepChartProps) {
           fillOpacity={1} 
           fill="url(#sleepGradient)" 
           strokeWidth={2}
+          dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4, stroke: 'hsl(var(--background))' }}
+          activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'hsl(var(--background))', strokeWidth: 2 }}
         />
       </AreaChart>
     </ResponsiveContainer>

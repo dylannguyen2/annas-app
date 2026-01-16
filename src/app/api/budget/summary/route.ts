@@ -39,6 +39,22 @@ export async function GET(request: Request) {
 
   const txList = transactions || []
 
+  const { data: budgets } = await supabase
+    .from('monthly_budgets')
+    .select('*')
+    .eq('user_id', effectiveUser.userId)
+    .eq('month', startDate)
+
+  const budgetMap = new Map<string, { amount: number; period: string }>()
+  const weeksInMonth = Math.ceil((endDate.getDate()) / 7)
+  
+  for (const b of budgets || []) {
+    const monthlyAmount = b.period === 'weekly' 
+      ? Number(b.amount) * weeksInMonth 
+      : Number(b.amount)
+    budgetMap.set(b.category_id, { amount: monthlyAmount, period: b.period || 'monthly' })
+  }
+
   const totalIncome = txList
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + Number(t.amount), 0)
@@ -49,6 +65,7 @@ export async function GET(request: Request) {
 
   const categoryBreakdown = ALL_CATEGORIES.map(cat => {
     const categoryTxs = txList.filter(t => t.category === cat.name)
+    const budget = budgetMap.get(cat.id)
 
     const spent = categoryTxs
       .filter(t => t.type === 'expense')
@@ -58,16 +75,23 @@ export async function GET(request: Request) {
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
+    const budgetAmount = budget?.amount || 0
+    const remaining = budgetAmount - spent
+    const percentUsed = budgetAmount > 0 ? Math.round((spent / budgetAmount) * 100) : 0
+
     return {
       ...cat,
       spent,
       earned,
-      budgetAmount: 0,
-      remaining: 0,
-      percentUsed: 0,
+      budgetAmount,
+      remaining,
+      percentUsed,
       transactionCount: categoryTxs.length,
     }
   })
+
+  const totalBudgeted = Array.from(budgetMap.values()).reduce((sum, b) => sum + b.amount, 0)
+  const budgetRemaining = totalBudgeted - totalExpenses
 
   const transactionsWithCategory = txList.map(t => ({
     ...t,
@@ -79,9 +103,9 @@ export async function GET(request: Request) {
     totalIncome,
     totalExpenses,
     netSavings: totalIncome - totalExpenses,
-    totalBudgeted: 0,
-    budgetRemaining: 0,
-    categoryBreakdown: categoryBreakdown.filter(c => c.spent > 0 || c.earned > 0),
+    totalBudgeted,
+    budgetRemaining,
+    categoryBreakdown: categoryBreakdown.filter(c => c.spent > 0 || c.earned > 0 || c.budgetAmount > 0),
     transactions: transactionsWithCategory,
   })
 }

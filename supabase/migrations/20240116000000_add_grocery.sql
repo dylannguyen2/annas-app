@@ -23,19 +23,23 @@ CREATE INDEX IF NOT EXISTS grocery_items_category_idx ON grocery_items(user_id, 
 
 ALTER TABLE grocery_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own grocery items" ON grocery_items;
 CREATE POLICY "Users can view own grocery items"
   ON grocery_items FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own grocery items" ON grocery_items;
 CREATE POLICY "Users can insert own grocery items"
   ON grocery_items FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own grocery items" ON grocery_items;
 CREATE POLICY "Users can update own grocery items"
   ON grocery_items FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own grocery items" ON grocery_items;
 CREATE POLICY "Users can delete own grocery items"
   ON grocery_items FOR DELETE
   USING (auth.uid() = user_id);

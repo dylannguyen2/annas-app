@@ -89,16 +89,16 @@ function GroceryListItem({
 
   return (
     <div className={cn(
-      "group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
+      "group relative flex items-center gap-3 p-3.5 rounded-xl transition-all duration-300",
       item.checked 
-        ? "bg-muted/40" 
-        : "bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border"
+        ? "bg-muted/30" 
+        : "bg-card border border-border/50 shadow-sm hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-0.5"
     )}>
       <button
         onClick={() => !isShareView && onToggle(item.id)}
         disabled={isShareView}
         className={cn(
-          "flex-shrink-0 h-5 w-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center",
+          "flex-shrink-0 h-5 w-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center cursor-pointer",
           item.checked
             ? "bg-primary border-primary"
             : "border-muted-foreground/30 hover:border-primary/50",
@@ -140,11 +140,11 @@ function GroceryListItem({
         "flex items-center gap-1 transition-opacity duration-200",
         item.checked && "opacity-40"
       )}>
-        <div className="flex items-center bg-muted/50 rounded-lg">
+        <div className="flex items-center bg-secondary/50 rounded-lg border border-border/30">
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg hover:bg-muted"
+            className="h-7 w-7 rounded-lg hover:bg-muted cursor-pointer"
             onClick={handleDecrement}
             disabled={isShareView || item.checked || (item.quantity || 1) <= 1}
           >
@@ -156,7 +156,7 @@ function GroceryListItem({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-lg hover:bg-muted"
+            className="h-7 w-7 rounded-lg hover:bg-muted cursor-pointer"
             onClick={handleIncrement}
             disabled={isShareView || item.checked}
           >
@@ -170,7 +170,7 @@ function GroceryListItem({
             size="icon"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
+            className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer"
           >
             {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           </Button>
@@ -213,6 +213,7 @@ export default function GroceryPage() {
   }, [lists, listsLoading, selectedListId])
 
   const [newItem, setNewItem] = useState('')
+  const [newQuantity, setNewQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -226,8 +227,9 @@ export default function GroceryPage() {
 
     setIsAdding(true)
     try {
-      await addItem({ name: newItem.trim() })
+      await addItem({ name: newItem.trim(), quantity: newQuantity })
       setNewItem('')
+      setNewQuantity(1)
     } catch {
       toast.error('Failed to add item')
     } finally {
@@ -303,40 +305,66 @@ export default function GroceryPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full page-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <ShoppingCart className="h-6 w-6 text-primary" />
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+            <div className="relative p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+              <ShoppingCart className="h-7 w-7 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">Grocery</h1>
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
+                Grocery
+              </h1>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 rounded-full">
+                <Button variant="outline" size="sm" className="gap-2 rounded-full cursor-pointer border-border/50 hover:border-primary/30 hover:bg-accent/50 transition-all duration-200">
+                  <ShoppingBasket className="h-3.5 w-3.5 text-primary" />
                   {currentList ? currentList.name : 'All Items'}
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>Switch List</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setSelectedListId(null)}>
+              <DropdownMenuContent align="start" className="w-64 p-2 border-border/50 shadow-lg">
+                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5">
+                  Your Lists
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border/50 my-1.5" />
+                <DropdownMenuItem 
+                  onClick={() => setSelectedListId(null)}
+                  className={cn(
+                    "cursor-pointer rounded-lg px-3 py-2.5 transition-all duration-200",
+                    !selectedListId && "bg-primary/10 text-primary font-medium"
+                  )}
+                >
+                  <ShoppingCart className="mr-2.5 h-4 w-4" />
                   All Items
                 </DropdownMenuItem>
                 {lists.map((list) => (
                   <DropdownMenuItem 
                     key={list.id} 
                     onClick={() => setSelectedListId(list.id)}
-                    className="flex items-center justify-between group"
+                    className={cn(
+                      "flex items-center justify-between group cursor-pointer rounded-lg px-3 py-2.5 transition-all duration-200",
+                      selectedListId === list.id && "bg-primary/10 text-primary"
+                    )}
                   >
-                    <span className={cn(selectedListId === list.id && "font-medium")}>
+                    <span className={cn(
+                      "flex items-center gap-2.5",
+                      selectedListId === list.id && "font-medium"
+                    )}>
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        selectedListId === list.id ? "bg-primary" : "bg-muted-foreground/30"
+                      )} />
                       {list.name}
                     </span>
                     {!isShareView && (
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-6 w-6 cursor-pointer rounded-md hover:bg-accent"
                           onClick={(e) => openRenameDialog(list.id, list.name, e)}
                         >
                           <Edit2 className="h-3 w-3" />
@@ -344,7 +372,7 @@ export default function GroceryPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 hover:text-destructive"
+                          className="h-6 w-6 hover:text-destructive hover:bg-destructive/10 cursor-pointer rounded-md"
                           onClick={(e) => handleDeleteList(list.id, e)}
                         >
                           <Trash2 className="h-3 w-3" />
@@ -355,43 +383,74 @@ export default function GroceryPage() {
                 ))}
                 {!isShareView && (
                   <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => setIsCreateDialogOpen(true)}>
-                      <FolderPlus className="mr-2 h-4 w-4" />
+                    <DropdownMenuSeparator className="bg-border/50 my-1.5" />
+                    <DropdownMenuItem 
+                      onSelect={() => setIsCreateDialogOpen(true)}
+                      className="cursor-pointer rounded-lg px-3 py-2.5 text-primary hover:bg-primary/10 transition-all duration-200"
+                    >
+                      <FolderPlus className="mr-2.5 h-4 w-4" />
                       Create New List
                     </DropdownMenuItem>
                   </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
+            <p className="text-muted-foreground font-medium mt-1">
+              {isEmpty ? 'Start adding items to your list.' : `${uncheckedItems.length} item${uncheckedItems.length !== 1 ? 's' : ''} to buy.`}
+            </p>
           </div>
-          <p className="text-muted-foreground text-lg">
-            {isEmpty ? 'Start adding items to your list.' : `${uncheckedItems.length} item${uncheckedItems.length !== 1 ? 's' : ''} to buy.`}
-          </p>
         </div>
         
         {!isShareView && (
           <form onSubmit={handleAdd} className="flex-1 max-w-md">
-            <div className="relative">
-              <Input
-                placeholder="Add an item..."
-                value={newItem}
-                onChange={(e) => setNewItem(e.target.value)}
-                className="h-11 pl-4 pr-12 rounded-xl border-border/50 bg-card shadow-sm focus-visible:border-primary/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                disabled={isAdding}
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={!newItem.trim() || isAdding}
-                className="absolute right-1.5 top-1.5 h-8 w-8 rounded-lg"
-              >
-                {isAdding ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-              </Button>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Add an item..."
+                  value={newItem}
+                  onChange={(e) => setNewItem(e.target.value)}
+                  className="h-11 pl-4 pr-12 rounded-xl border-border/50 bg-card shadow-sm focus-visible:border-primary/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  disabled={isAdding}
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={!newItem.trim() || isAdding}
+                  className="absolute right-1.5 top-1.5 h-8 w-8 rounded-lg cursor-pointer"
+                >
+                  {isAdding ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center bg-card border border-border/50 rounded-xl shadow-sm">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-9 rounded-l-xl rounded-r-none hover:bg-muted cursor-pointer"
+                  onClick={() => setNewQuantity(q => Math.max(1, q - 1))}
+                  disabled={isAdding || newQuantity <= 1}
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </Button>
+                <span className="w-8 text-center text-sm font-semibold tabular-nums">
+                  {newQuantity}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-9 rounded-r-xl rounded-l-none hover:bg-muted cursor-pointer"
+                  onClick={() => setNewQuantity(q => q + 1)}
+                  disabled={isAdding}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           </form>
         )}
@@ -399,12 +458,15 @@ export default function GroceryPage() {
 
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-            <Sparkles className="h-8 w-8 text-muted-foreground/40" />
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl blur-xl opacity-50" />
+            <div className="relative h-16 w-16 rounded-2xl bg-card border border-border/50 flex items-center justify-center shadow-sm">
+              <ShoppingBasket className="h-8 w-8 text-muted-foreground/50" />
+            </div>
           </div>
-          <h2 className="text-lg font-semibold mb-1">Your list is empty</h2>
-          <p className="text-muted-foreground text-sm">
-            Add items to start your shopping list
+          <h2 className="text-xl font-semibold mb-2">Your list is empty</h2>
+          <p className="text-muted-foreground text-sm max-w-xs">
+            Add items above to start your shopping list
           </p>
         </div>
       ) : (
@@ -428,8 +490,8 @@ export default function GroceryPage() {
 
           {checkedItems.length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-muted-foreground">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/30">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Completed ({checkedItems.length})
                 </span>
                 {!isShareView && (
@@ -437,7 +499,7 @@ export default function GroceryPage() {
                     variant="ghost"
                     size="sm"
                     onClick={clearChecked}
-                    className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
+                    className="text-xs text-muted-foreground hover:text-destructive h-7 px-2 cursor-pointer"
                   >
                     Clear all
                   </Button>
@@ -477,15 +539,15 @@ export default function GroceryPage() {
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="e.g. Weekly Shop"
-              className="mt-2"
+              className="mt-2 h-11 bg-secondary/30 border-border/50 focus:border-primary/50"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreateList()
               }}
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateList}>Create List</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="cursor-pointer border-border/50">Cancel</Button>
+            <Button onClick={handleCreateList} className="cursor-pointer">Create List</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -506,15 +568,15 @@ export default function GroceryPage() {
               id="rename"
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
-              className="mt-2"
+              className="mt-2 h-11 bg-secondary/30 border-border/50 focus:border-primary/50"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleRenameList()
               }}
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleRenameList}>Save Changes</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)} className="cursor-pointer border-border/50">Cancel</Button>
+            <Button onClick={handleRenameList} className="cursor-pointer">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

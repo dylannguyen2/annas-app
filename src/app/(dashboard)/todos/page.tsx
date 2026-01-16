@@ -955,7 +955,7 @@ export default function TodosPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full">
+    <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
         <div className="flex items-center gap-4">
           <div className="relative group">
@@ -965,7 +965,7 @@ export default function TodosPage() {
             </div>
           </div>
           <div>
-            <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent/80">
+            <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
               My Tasks
             </h1>
             <p className="text-muted-foreground font-medium mt-1">
@@ -1005,45 +1005,41 @@ export default function TodosPage() {
       </div>
 
       {viewMode === 'matrix' && (
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="border-none shadow-sm bg-primary/5 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <div className="text-sm font-semibold text-primary/80 uppercase tracking-wider">Total Tasks</div>
-              <div className="h-8 w-8 rounded-full bg-background/50 flex items-center justify-center text-primary shadow-sm">
-                <List className="h-4 w-4" />
-              </div>
+        <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+            <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+              <ListTodo className="w-32 h-32" />
+            </div>
+            <CardHeader className="pb-2 relative">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Tasks</div>
             </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-4xl font-bold text-primary tracking-tight">{todos.length}</div>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold text-foreground">{todos.length}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">all tasks</p>
             </CardContent>
           </Card>
-          <Card className="border-none shadow-sm bg-muted/30 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Pending</div>
-              <div className="h-8 w-8 rounded-full bg-background/50 flex items-center justify-center text-orange-500 shadow-sm">
-                <CalendarClock className="h-4 w-4" />
-              </div>
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+            <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+              <CalendarClock className="w-32 h-32" />
+            </div>
+            <CardHeader className="pb-2 relative">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pending</div>
             </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-4xl font-bold text-foreground tracking-tight">
-                {getPendingCount()}
-              </div>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold text-foreground">{getPendingCount()}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">to complete</p>
             </CardContent>
           </Card>
-          <Card className="border-none shadow-sm bg-muted/30 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Completed</div>
-              <div className="h-8 w-8 rounded-full bg-background/50 flex items-center justify-center text-green-500 shadow-sm">
-                <Check className="h-4 w-4" />
-              </div>
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+            <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+              <Check className="w-32 h-32" />
+            </div>
+            <CardHeader className="pb-2 relative">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Completed</div>
             </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="text-4xl font-bold text-foreground tracking-tight">
-                {getCompletedCount()}
-              </div>
+            <CardContent className="relative">
+              <div className="text-3xl font-bold text-foreground">{getCompletedCount()}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">done</p>
             </CardContent>
           </Card>
         </div>

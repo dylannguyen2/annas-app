@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { useHabits } from '@/hooks/use-habits'
 import { useMoods } from '@/hooks/use-moods'
 import { useHealth } from '@/hooks/use-health'
@@ -13,10 +13,18 @@ import {
   SleepChart,
   StepsChart
 } from '@/components/charts'
-import { TrendingUp, Moon, Activity, Heart, Lightbulb } from 'lucide-react'
+import { TrendingUp, Moon, Activity, Heart, Lightbulb, Grid3X3, GitCompare } from 'lucide-react'
 import { PageSkeleton } from '@/components/dashboard/page-skeleton'
+import { cn } from '@/lib/utils'
+
+const TABS = [
+  { id: 'heatmaps', label: 'Heatmaps', icon: Grid3X3 },
+  { id: 'correlations', label: 'Correlations', icon: GitCompare },
+  { id: 'trends', label: 'Trends', icon: TrendingUp },
+] as const
 
 export default function InsightsPage() {
+  const [activeTab, setActiveTab] = useState<'heatmaps' | 'correlations' | 'trends'>('heatmaps')
   const { habits, completions, loading: habitsLoading } = useHabits()
   const { moods, loading: moodsLoading } = useMoods()
   const { healthData, garminStatus, loading: healthLoading } = useHealth()
@@ -150,80 +158,114 @@ export default function InsightsPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <Lightbulb className="h-6 w-6 text-primary" />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+              <div className="relative p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+                <Lightbulb className="h-7 w-7 text-primary" />
+              </div>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">Insights</h1>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">
+                Insights
+              </h1>
+              <p className="text-muted-foreground font-medium mt-1">
+                Discover patterns and correlations in your data
+              </p>
+            </div>
           </div>
-          <p className="text-muted-foreground text-lg">Discover patterns and correlations in your data.</p>
         </div>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Mood</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mt-2">
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 outline-hidden whitespace-nowrap cursor-pointer",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            >
+              <Icon className={cn("h-4 w-4", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+            <TrendingUp className="w-32 h-32" />
+          </div>
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg Mood</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-foreground">
               {weeklyStats.avgMood ? weeklyStats.avgMood.toFixed(1) : '--'}
             </div>
-            <p className="text-xs text-muted-foreground">past 7 days</p>
+            <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">past 7 days</p>
           </CardContent>
         </Card>
-        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Sleep</CardTitle>
-            <Moon className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+            <Moon className="w-32 h-32" />
+          </div>
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg Sleep</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-foreground">
               {weeklyStats.avgSleep ? `${weeklyStats.avgSleep.toFixed(1)}h` : '--'}
             </div>
-            <p className="text-xs text-muted-foreground">past 7 days</p>
+            <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">past 7 days</p>
           </CardContent>
         </Card>
-        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Steps</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+            <Activity className="w-32 h-32" />
+          </div>
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg Steps</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-foreground">
               {weeklyStats.avgSteps ? Math.round(weeklyStats.avgSteps).toLocaleString() : '--'}
             </div>
-            <p className="text-xs text-muted-foreground">past 7 days</p>
+            <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">past 7 days</p>
           </CardContent>
         </Card>
-        <Card className="min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Habit Rate</CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 min-w-[160px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+          <div className="absolute -bottom-6 -right-6 opacity-[0.03] rotate-[-15deg] pointer-events-none">
+            <Heart className="w-32 h-32" />
+          </div>
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Habit Rate</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-foreground">
               {weeklyStats.habitCompletionRate ? `${Math.round(weeklyStats.habitCompletionRate)}%` : '--'}
             </div>
-            <p className="text-xs text-muted-foreground">past 7 days</p>
+            <p className="text-xs text-muted-foreground mt-1 font-medium opacity-80">past 7 days</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="heatmaps" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="heatmaps">Heatmaps</TabsTrigger>
-          <TabsTrigger value="correlations">Correlations</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="heatmaps" className="space-y-4">
+      {activeTab === 'heatmaps' && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
-                <CardTitle>Mood Heatmap</CardTitle>
+                <CardTitle className="text-lg font-semibold">Mood Heatmap</CardTitle>
                 <CardDescription>Your mood patterns throughout the year</CardDescription>
               </CardHeader>
               <CardContent>
@@ -237,9 +279,9 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
-                <CardTitle>Habit Completion Heatmap</CardTitle>
+                <CardTitle className="text-lg font-semibold">Habit Completion Heatmap</CardTitle>
                 <CardDescription>Your habit consistency throughout the year</CardDescription>
               </CardHeader>
               <CardContent>
@@ -253,13 +295,15 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="correlations" className="space-y-4">
+      {activeTab === 'correlations' && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
-                <CardTitle>Sleep vs Mood</CardTitle>
+                <CardTitle className="text-lg font-semibold">Sleep vs Mood</CardTitle>
                 <CardDescription>Does more sleep improve your mood?</CardDescription>
               </CardHeader>
               <CardContent>
@@ -273,9 +317,9 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
-                <CardTitle>Sleep vs Energy</CardTitle>
+                <CardTitle className="text-lg font-semibold">Sleep vs Energy</CardTitle>
                 <CardDescription>Does more sleep boost your energy?</CardDescription>
               </CardHeader>
               <CardContent>
@@ -289,9 +333,9 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
-                <CardTitle>Steps vs Mood</CardTitle>
+                <CardTitle className="text-lg font-semibold">Steps vs Mood</CardTitle>
                 <CardDescription>Does more activity improve your mood?</CardDescription>
               </CardHeader>
               <CardContent>
@@ -305,14 +349,16 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="trends" className="space-y-4">
+      {activeTab === 'trends' && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
           {garminStatus.connected ? (
             <>
-              <Card>
+              <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
                 <CardHeader>
-                  <CardTitle>Sleep Trends</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Sleep Trends</CardTitle>
                   <CardDescription>Your sleep duration over time</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -320,9 +366,9 @@ export default function InsightsPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
                 <CardHeader>
-                  <CardTitle>Steps Trends</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Steps Trends</CardTitle>
                   <CardDescription>Your daily steps over time</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -331,7 +377,7 @@ export default function InsightsPage() {
               </Card>
             </>
           ) : (
-            <Card>
+            <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20">
               <CardContent className="py-12">
                 <div className="text-center text-muted-foreground">
                   <p className="mb-2">Connect Garmin to see health trends</p>
@@ -342,8 +388,8 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   )
 }

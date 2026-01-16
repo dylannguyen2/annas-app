@@ -73,7 +73,7 @@ function MonthView({ data }: { data: HabitCompletion[] }) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 cursor-pointer"
           onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -84,7 +84,7 @@ function MonthView({ data }: { data: HabitCompletion[] }) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 cursor-pointer"
           onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
           disabled={isSameMonth(currentMonth, new Date())}
         >
@@ -244,7 +244,7 @@ function YearView({ data, year }: { data: HabitCompletion[], year: number }) {
                     <Tooltip key={dayIndex}>
                       <TooltipTrigger asChild>
                         <div
-                          className={`flex-1 aspect-square rounded-sm ${
+                          className={`flex-1 aspect-square rounded-sm cursor-pointer ${
                             !isInYear 
                               ? 'bg-transparent' 
                               : getIntensityColor(day.completed, day.total)

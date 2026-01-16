@@ -12,20 +12,27 @@ export async function GET(request: Request) {
   const supabase = getSupabaseAdmin()
 
   const { searchParams } = new URL(request.url)
-  const limit = parseInt(searchParams.get('limit') || '50')
+  const limit = parseInt(searchParams.get('limit') || '20')
+  const offset = parseInt(searchParams.get('offset') || '0')
 
-  const { data: workouts, error } = await supabase
+  const { data: workouts, error, count } = await supabase
     .from('workout_notes')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('user_id', effectiveUser.userId)
     .order('date', { ascending: false })
-    .limit(limit)
+    .range(offset, offset + limit - 1)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(workouts)
+  return NextResponse.json({
+    data: workouts,
+    total: count,
+    hasMore: (offset + limit) < (count || 0),
+    offset,
+    limit,
+  })
 }
 
 export async function POST(request: Request) {
