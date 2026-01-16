@@ -957,18 +957,23 @@ export default function TodosPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-8 max-w-[1600px] mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-6 border-b border-border/40">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <ListTodo className="h-6 w-6 text-primary" />
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+            <div className="relative p-3 bg-card border border-border/50 rounded-2xl shadow-sm">
+              <ListTodo className="h-7 w-7 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">My Tasks</h1>
           </div>
-          <p className="text-muted-foreground text-lg">
-            {viewMode === 'matrix' 
-              ? 'Prioritize with the Eisenhower Matrix.' 
-              : 'Quickly capture and organize your tasks.'}
-          </p>
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent/80">
+              My Tasks
+            </h1>
+            <p className="text-muted-foreground font-medium mt-1">
+              {viewMode === 'matrix' 
+                ? 'Prioritize with the Eisenhower Matrix.' 
+                : 'Quickly capture and organize your tasks.'}
+            </p>
+          </div>
         </div>
         
         <div className="flex items-center gap-1 bg-muted/50 p-1.5 rounded-xl border border-border/50 backdrop-blur-sm">
