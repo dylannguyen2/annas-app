@@ -68,14 +68,20 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete,
   }
 
   return (
-    <Card className="p-4">
+    <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 p-4">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-            style={{ backgroundColor: habit.color + '20', color: habit.color }}
-          >
-            {habit.icon}
+          <div className="relative">
+            <div 
+              className="absolute inset-0 rounded-xl blur-md opacity-40"
+              style={{ backgroundColor: habit.color }}
+            />
+            <div
+              className="relative w-11 h-11 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white/10"
+              style={{ backgroundColor: habit.color + '20', color: habit.color }}
+            >
+              {habit.icon}
+            </div>
           </div>
           <div>
             {isEditingName && !isReadOnly ? (
@@ -86,14 +92,14 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete,
                 onBlur={handleNameSave}
                 onKeyDown={handleNameKeyDown}
                 autoFocus
-                className="font-medium bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
+                className="font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 w-full text-foreground"
               />
             ) : (
-              <h3 onClick={isReadOnly ? undefined : handleNameClick} className={cn("font-medium", !isReadOnly && "cursor-text")}>{habit.name}</h3>
+              <h3 onClick={isReadOnly ? undefined : handleNameClick} className={cn("font-semibold text-foreground", !isReadOnly && "cursor-text hover:text-primary transition-colors")}>{habit.name}</h3>
             )}
             {streak > 0 && (
-              <div className="flex items-center gap-1 text-sm text-orange-500">
-                <Flame className="h-3 w-3" />
+              <div className="inline-flex items-center gap-1.5 text-sm font-medium text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded-full mt-1">
+                <Flame className="h-3.5 w-3.5" />
                 <span>{streak} day streak</span>
               </div>
             )}
@@ -102,7 +108,7 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete,
         {!isReadOnly && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer hover:bg-accent/50">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -129,7 +135,7 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete,
         )}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5 p-3 bg-secondary/20 rounded-xl border border-border/30 mt-1">
         {weekDates.map((date) => {
           const isComplete = completedDates.includes(date)
           const isTodayDate = isToday(date)
@@ -143,27 +149,28 @@ export function HabitCard({ habit, completedDates, onToggle, onUpdate, onDelete,
               onClick={isDisabled ? undefined : () => handleToggle(date)}
               disabled={isDisabled}
               className={cn(
-                'flex flex-col items-center py-2 rounded-lg transition-all',
-                isTodayDate && 'ring-2 ring-primary ring-offset-1',
+                'flex flex-col items-center py-2.5 px-1 rounded-xl transition-all duration-200 cursor-pointer',
+                isTodayDate && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                 isComplete
-                  ? 'bg-primary/20'
-                  : !isDisabled && 'hover:bg-accent',
-                isFuture && 'opacity-40 cursor-not-allowed'
+                  ? 'bg-primary/15'
+                  : !isDisabled && 'hover:bg-accent/50 hover:scale-105',
+                isFuture && 'opacity-40 cursor-not-allowed',
+                !isFuture && !isReadOnly && 'cursor-pointer'
               )}
             >
-              <span className="text-xs text-muted-foreground">{getDayName(date)}</span>
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{getDayName(date)}</span>
               <span className={cn(
-                'text-sm font-medium',
-                isTodayDate && 'text-primary'
+                'text-sm font-semibold mt-0.5',
+                isTodayDate ? 'text-primary' : 'text-foreground'
               )}>
                 {getDayNumber(date)}
               </span>
               <div
                 className={cn(
-                  'w-6 h-6 mt-1 rounded-full flex items-center justify-center transition-all',
+                  'w-7 h-7 mt-1.5 rounded-full flex items-center justify-center transition-all duration-200',
                   isComplete
-                    ? 'text-white'
-                    : 'bg-secondary'
+                    ? 'text-white shadow-sm'
+                    : 'bg-secondary/50 border border-border/50'
                 )}
                 style={isComplete ? { backgroundColor: habit.color } : {}}
               >
